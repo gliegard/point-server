@@ -1,0 +1,21 @@
+{
+    "pipeline": [
+       {
+          "type": "readers.ept",
+          
+          "filename": "/media/store-idi1/guillaume/EPT_56/EPT_4978/ept.json",
+          "bounds": "{{bounds}}"
+       },
+       {
+            "type":"filters.transformation",
+            "matrix":"{{matrixTransformation}}"
+
+        },
+        {
+            "type":"filters.reprojection",
+            "in_srs":"EPSG:4978",
+            "out_srs":"EPSG:2154"
+        },
+        "output.las"
+    ]
+}
