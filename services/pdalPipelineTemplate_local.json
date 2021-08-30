@@ -16,6 +16,10 @@
             "in_srs":"EPSG:4978",
             "out_srs":"EPSG:2154"
         },
+        {
+            "type":"filters.crop",
+            "polygon":"POLYGON(({{polygon}}))"
+        },
         "output.las"
     ]
 }
