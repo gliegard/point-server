@@ -26,7 +26,8 @@ router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
 
   let polygon = req.query.poly;
   if (!polygon) {
-    res.send("Error: You must specify a polygon to crops");
+    console.log("Error: You must specify a polygon to crops")
+    res.send("Error: You must specify a polygon to crop");
     return;
   }
 
