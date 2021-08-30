@@ -24,6 +24,15 @@ router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
   console.log('-- new request');
   console.log(p);
 
+  let polygon = req.query.poly;
+  if (!polygon) {
+    res.send("Error: You must specify a polygon to crops");
+    return;
+  }
+
+  polygon = polygon.replace(/_/g, ' ');
+  // console.log(polygon);
+
   let c1 = new itowns.Coordinates('EPSG:2154', +(p.x1), +(p.y1), -100).as('EPSG:4978');
   let c2 = new itowns.Coordinates('EPSG:2154', +(p.x2), +(p.y2), 1000).as('EPSG:4978');
   // console.log(c1);
@@ -53,7 +62,7 @@ router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
   // console.log(bounds);
 
   // create pdal pipeline in Json
-  const pdalPipeline = template({ bounds, matrixTransformation });
+  const pdalPipeline = template({ bounds, matrixTransformation, polygon });
   // console.log(pdalPipeline);
 
   // Generate pdal pipeline file
