@@ -3,6 +3,7 @@ rm -f output.las
 
 # coordonnees d'un eglise au sud de Vanne
 curl http://localhost:3000/points/271113/271161/6734674/6734717 
+time curl http://localhost:3000/points/271113/271161/6734674/6734717?poly=271113_6734674,271113_6734717,271161_6734717,271161_6734674,271113_6734674
 
 if [ -f "output.las" ];then
 	ls -lah output.las
