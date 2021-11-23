@@ -23,7 +23,7 @@ const eptFilename = eptFolder + '/EPT_4978/ept.json';
 const pivotFile = eptFolder + '/metadata/pivotTHREE.json';
 
 /* GET points listing. */
-router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
+router.get('/', function(req, res, next) {
   
   let p = req.params;
 
@@ -49,11 +49,27 @@ router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
   if (polygon_points[0] != polygon_points[polygon_points.length - 1]) {
     polygon += ',' + polygon_points[0]
   }
+  // compute bounding box
+  const first_point = polygon_points[0].split(' ');
+  var x1 = parseFloat(first_point[0]);
+  var x2 = x1;
+  var y1 = parseFloat(first_point[1]);
+  var y2 = y1;
+  var num_points = polygon_points.length;
+  for (var i = 1; i < num_points; i++) {
+    const coord = polygon_points[i].split(' ');
+    const x = parseFloat(coord[0]);
+    const y = parseFloat(coord[1]);
+    x1 = Math.min(x1, x);
+    x2 = Math.max(x2, x);
+    y1 = Math.min(y1, y);
+    y2 = Math.max(y2, y);
+  }
+  console.log('bbox: x: ' + x1 + ' to ' + x2 + ' ; y: ' + y1 + ' to ' + y2)
+  // console.log('bbox: x: ' + p.x1 + ' to ' + p.x2 + ' ; y: ' + p.y1 + ' to ' + p.y2)
 
-  console.log('bbox: x: ' + p.x1 + ' to ' + p.x2 + ' ; y: ' + p.y1 + ' to ' + p.y2)
-
-  let c1 = new itowns.Coordinates('EPSG:2154', +(p.x1), +(p.y1), -100).as('EPSG:4978');
-  let c2 = new itowns.Coordinates('EPSG:2154', +(p.x2), +(p.y2), 1000).as('EPSG:4978');
+  let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
+  let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
   // console.log(c1);
   // console.log(c2);
 
