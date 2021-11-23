@@ -16,8 +16,14 @@ var router = express.Router();
 proj4.defs('EPSG:4978', '+proj=geocent +datum=WGS84 +units=m +no_defs');
 proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
 
+const eptFolder = '/media/data/EPT_SUD_Vannes';
+// const eptFolder = '/media/store-idi1/guillaume/EPT_56';
+
+const eptFilename = eptFolder + '/EPT_4978/ept.json';
+const pivotFile = eptFolder + '/metadata/pivotTHREE.json';
+
 /* GET points listing. */
-router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
+router.get('/', function(req, res, next) {
   
   let p = req.params;
 
@@ -27,20 +33,46 @@ router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
   let polygon = req.query.poly;
   if (!polygon) {
     console.log("Error: You must specify a polygon to crops")
-    res.send("Error: You must specify a polygon to crop");
+    res.send("Error: You must specify a polygon to crop\n");
     return;
   }
 
   polygon = polygon.replace(/_/g, ' ');
-  // console.log(polygon);
+  polygon_points = polygon.split(',')
 
-  let c1 = new itowns.Coordinates('EPSG:2154', +(p.x1), +(p.y1), -100).as('EPSG:4978');
-  let c2 = new itowns.Coordinates('EPSG:2154', +(p.x2), +(p.y2), 1000).as('EPSG:4978');
+  if (polygon_points.length < 3) {
+    console.log("Error: Polygon must have at least 3 points")
+    res.send("Error: Polygon must have at least 3 points\n");
+    return;
+  }
+  // Manage Invalid ring. When First point is not equal to the last point.
+  if (polygon_points[0] != polygon_points[polygon_points.length - 1]) {
+    polygon += ',' + polygon_points[0]
+  }
+  // compute bounding box
+  const first_point = polygon_points[0].split(' ');
+  var x1 = parseFloat(first_point[0]);
+  var x2 = x1;
+  var y1 = parseFloat(first_point[1]);
+  var y2 = y1;
+  var num_points = polygon_points.length;
+  for (var i = 1; i < num_points; i++) {
+    const coord = polygon_points[i].split(' ');
+    const x = parseFloat(coord[0]);
+    const y = parseFloat(coord[1]);
+    x1 = Math.min(x1, x);
+    x2 = Math.max(x2, x);
+    y1 = Math.min(y1, y);
+    y2 = Math.max(y2, y);
+  }
+  console.log('bbox: x: ' + x1 + ' to ' + x2 + ' ; y: ' + y1 + ' to ' + y2)
+  // console.log('bbox: x: ' + p.x1 + ' to ' + p.x2 + ' ; y: ' + p.y1 + ' to ' + p.y2)
+
+  let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
+  let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
   // console.log(c1);
   // console.log(c2);
 
-  // const pivotFile = '/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json';
-  const pivotFile =  '/media/store-idi1/guillaume/EPT_56/metadata/pivotTHREE.json';
   const pivotJson = fs.readFileSync(pivotFile, {encoding:'utf8', flag:'r'});
 
   // console.log(pivotJson);
@@ -63,7 +95,7 @@ router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
   // console.log(bounds);
 
   // create pdal pipeline in Json
-  const pdalPipeline = template({ bounds, matrixTransformation, polygon });
+  const pdalPipeline = template({eptFilename, bounds, matrixTransformation, polygon });
   // console.log(pdalPipeline);
 
   // Generate pdal pipeline file

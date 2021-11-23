@@ -2,6 +2,14 @@
 point-server is a server use to extract pointcloud data.
 
 ## to do
+- Easy usage
+  - no bbox to give in parameter
+
+- Robust : 
+  - test existing code with unit tests
+
+- surface limitation
+  - eq to 30 sec or 1 min max
 
 - Multiple requests in parallel
   - Test : How to test multiple request ?
@@ -70,4 +78,15 @@ screen -ls
 Re attach your terminal to a session
 ```
 screen -r point_server_running
+```
+
+## request on the server
+
+Download a pointcloud, with curl : 
+```
+curl http://localhost:3000/points?poly=271113_6734674,271113_6734717,271161_6734717,271161_6734674
+```
+And open it with cloudCompare :
+```
+cloudcompare.CloudCompare output.las
 ```

@@ -3,7 +3,7 @@
        {
           "type": "readers.ept",
           
-          "filename": "/media/store-idi1/guillaume/EPT_56/EPT_4978/ept.json",
+          "filename": "{{eptFilename}}",
           "bounds": "{{bounds}}"
        },
        {

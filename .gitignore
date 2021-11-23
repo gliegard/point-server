@@ -1,3 +1,7 @@
+output.las
+pipeline.json
+test2.las
+
 # Logs
 logs
 *.log
