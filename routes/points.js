@@ -60,6 +60,12 @@ router.get('/', function(req, res, next) {
     const coord = polygon_points[i].split(' ');
     const x = parseFloat(coord[0]);
     const y = parseFloat(coord[1]);
+    console.log(x, y);
+    if (isNaN(x) || isNaN(y)) {
+      console.log('continue')
+      continue;
+    }
+
     x1 = Math.min(x1, x);
     x2 = Math.max(x2, x);
     y1 = Math.min(y1, y);

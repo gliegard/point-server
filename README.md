@@ -2,14 +2,12 @@
 point-server is a server use to extract pointcloud data.
 
 ## to do
-- Easy usage
-  - no bbox to give in parameter
 
-- Robust : 
-  - test existing code with unit tests
+- Robustness : 
+  - test existing code with unit tests, at least functionnal tests for errors
 
-- surface limitation
-  - eq to 30 sec or 1 min max
+- Limit surface to extract:
+  - equivalent to 30 sec or 1 min max
 
 - Multiple requests in parallel
   - Test : How to test multiple request ?
