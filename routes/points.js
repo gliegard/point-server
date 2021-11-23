@@ -16,8 +16,11 @@ var router = express.Router();
 proj4.defs('EPSG:4978', '+proj=geocent +datum=WGS84 +units=m +no_defs');
 proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
 
-const eptFilename = '/media/store-idi1/guillaume/EPT_56/EPT_4978/ept.json';
-// const eptFilename = '/media/data/EPT_SUD_Vannes/EPT_4978/ept.json'
+const eptFolder = '/media/data/EPT_SUD_Vannes';
+// const eptFolder = '/media/store-idi1/guillaume/EPT_56';
+
+const eptFilename = eptFolder + '/EPT_4978/ept.json';
+const pivotFile = eptFolder + '/metadata/pivotTHREE.json';
 
 /* GET points listing. */
 router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
@@ -54,8 +57,6 @@ router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
   // console.log(c1);
   // console.log(c2);
 
-  // const pivotFile = '/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json';
-  const pivotFile =  '/media/store-idi1/guillaume/EPT_56/metadata/pivotTHREE.json';
   const pivotJson = fs.readFileSync(pivotFile, {encoding:'utf8', flag:'r'});
 
   // console.log(pivotJson);
