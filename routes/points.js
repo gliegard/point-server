@@ -30,12 +30,24 @@ router.get('/:x1/:x2/:y1/:y2', function(req, res, next) {
   let polygon = req.query.poly;
   if (!polygon) {
     console.log("Error: You must specify a polygon to crops")
-    res.send("Error: You must specify a polygon to crop");
+    res.send("Error: You must specify a polygon to crop\n");
     return;
   }
 
   polygon = polygon.replace(/_/g, ' ');
-  // console.log(polygon);
+  polygon_points = polygon.split(',')
+
+  if (polygon_points.length < 3) {
+    console.log("Error: Polygon must have at least 3 points")
+    res.send("Error: Polygon must have at least 3 points\n");
+    return;
+  }
+  // Manage Invalid ring. When First point is not equal to the last point.
+  if (polygon_points[0] != polygon_points[polygon_points.length - 1]) {
+    polygon += ',' + polygon_points[0]
+  }
+
+  console.log('bbox: x: ' + p.x1 + ' to ' + p.x2 + ' ; y: ' + p.y1 + ' to ' + p.y2)
 
   let c1 = new itowns.Coordinates('EPSG:2154', +(p.x1), +(p.y1), -100).as('EPSG:4978');
   let c2 = new itowns.Coordinates('EPSG:2154', +(p.x2), +(p.y2), 1000).as('EPSG:4978');
