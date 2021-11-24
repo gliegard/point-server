@@ -3,11 +3,16 @@ point-server is a server use to extract pointcloud data.
 
 ## to do
 
-- Robustness : 
-  - test existing code with unit tests, at least functionnal tests for errors
+- EPSG input/out parameter. Now it's lamb93 hard coded 
+  - for the request
+  - for the output
 
-- Limit surface to extract:
-  - equivalent to 30 sec or 1 min max
+- Configuration file to put
+  - EPT folder
+  - area limit in m²
+
+- Tests : 
+  - test existing code with unit tests, at least functionnal tests for errors
 
 - Multiple requests in parallel
   - Test : How to test multiple request ?

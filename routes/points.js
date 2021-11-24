@@ -22,18 +22,19 @@ const eptFolder = '/media/data/EPT_SUD_Vannes';
 const eptFilename = eptFolder + '/EPT_4978/ept.json';
 const pivotFile = eptFolder + '/metadata/pivotTHREE.json';
 
+// 0 means no limit
+// const area_limit_in_square_meter = 0;
+const area_limit_in_square_meter = 100000;
+
 /* GET points listing. */
 router.get('/', function(req, res, next) {
   
   let p = req.params;
 
-  console.log('-- new request');
-  console.log(p);
-
   let polygon = req.query.poly;
   if (!polygon) {
-    console.log("Error: You must specify a polygon to crops")
-    res.send("Error: You must specify a polygon to crop\n");
+    console.log("Bad Request: You must specify a polygon to crops")
+    res.status(400).send('Bad Request: You must specify a polygon to crop\n');
     return;
   }
 
@@ -41,14 +42,15 @@ router.get('/', function(req, res, next) {
   polygon_points = polygon.split(',')
 
   if (polygon_points.length < 3) {
-    console.log("Error: Polygon must have at least 3 points")
-    res.send("Error: Polygon must have at least 3 points\n");
+    console.log("Bad Request: Polygon must have at least 3 points")
+    res.status(400).send("Bad Request: Polygon must have at least 3 points\n");
     return;
   }
   // Manage Invalid ring. When First point is not equal to the last point.
   if (polygon_points[0] != polygon_points[polygon_points.length - 1]) {
     polygon += ',' + polygon_points[0]
   }
+
   // compute bounding box
   const first_point = polygon_points[0].split(' ');
   var x1 = parseFloat(first_point[0]);
@@ -60,7 +62,7 @@ router.get('/', function(req, res, next) {
     const coord = polygon_points[i].split(' ');
     const x = parseFloat(coord[0]);
     const y = parseFloat(coord[1]);
-    console.log(x, y);
+    // console.log(x, y);
     if (isNaN(x) || isNaN(y)) {
       console.log('continue')
       continue;
@@ -72,7 +74,20 @@ router.get('/', function(req, res, next) {
     y2 = Math.max(y2, y);
   }
   console.log('bbox: x: ' + x1 + ' to ' + x2 + ' ; y: ' + y1 + ' to ' + y2)
-  // console.log('bbox: x: ' + p.x1 + ' to ' + p.x2 + ' ; y: ' + p.y1 + ' to ' + p.y2)
+
+  // compute area
+  const deltaX = Math.floor(x2 - x1);
+  const deltaY = Math.floor(y2 - y1);
+  var area = Math.floor(deltaX * deltaY);
+  console.log('area: ' + deltaX + 'm * ' + deltaY + 'm = ' + area + ' m²');
+
+  // limit on area
+  if (area_limit_in_square_meter > 0 && area > area_limit_in_square_meter) {
+    const msg = 'Bad Request: Area is to big ('+ area + 'm²) ; limit is set to ' + area_limit_in_square_meter + 'm²)';
+    console.log(msg);
+    res.status(400).send(msg + '\n');
+    return;
+  }
 
   let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
   let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
