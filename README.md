@@ -19,9 +19,6 @@ point-server is a server use to extract pointcloud data.
   - Use npx + mp2 to manage parallel request
   - Avoid creating same pipeline name for each request, create unique id tmp file
 
-
-- Configurable Entwine folder to serve
-
 - Allow itown planar mode (means serve point cloud in a Non geocentric proj)
   - Use other pipeline template file
 

@@ -17,6 +17,7 @@
     "pug": "^3.0.2"
   },
   "devDependencies": {
-    "nodemon": "^2.0.12"
+    "nodemon": "^2.0.12",
+    "loadtest": "^5.1.2"
   }
 }
