@@ -9,6 +9,8 @@ const jsonPdalTemplate = require('../services/pdalPipelineTemplate.json');
 const { spawn, exec, execSync } = require('child_process');
 const path = require('path');
 
+const { v4: uuidv4 } = require('uuid');
+
 const template = parse(jsonPdalTemplate);
 
 var router = express.Router();
@@ -120,12 +122,14 @@ router.get('/', function(req, res, next) {
   // console.log(pdalPipeline);
 
   // Generate pdal pipeline file
-  const pdalPipeline_File = 'pipeline.json';
+  const pdalPipeline_File = uuidv4() + '-pipeline.json';
   fs.writeFileSync(pdalPipeline_File, JSON.stringify(pdalPipeline, null, 2));
 
   console.log('call pdal... ');
+  const comand = 'pdal pipeline -i ' + pdalPipeline_File;
   try {
-    execSync('pdal pipeline -i pipeline.json');  
+    
+    execSync(comand);  
   } catch (err){
 
     // Handle 'pdal not found' error
@@ -135,6 +139,14 @@ router.get('/', function(req, res, next) {
       console.log(tips);
     }
     throw new Error(err);
+  }
+  finally {
+    try {
+      fs.unlinkSync(pdalPipeline_File)
+      //file removed
+    } catch(err) {
+      console.error(err)
+    }
   }
 
   // TODO: Use correct filename for the user

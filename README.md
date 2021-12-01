@@ -15,9 +15,7 @@ point-server is a server use to extract pointcloud data.
   - test existing code with unit tests, at least functionnal tests for errors
 
 - Multiple requests in parallel
-  - Test : How to test multiple request ?
   - Use npx + mp2 to manage parallel request
-  - Avoid creating same pipeline name for each request, create unique id tmp file
 
 - Allow itown planar mode (means serve point cloud in a Non geocentric proj)
   - Use other pipeline template file
