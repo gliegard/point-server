@@ -118,11 +118,15 @@ router.get('/', function(req, res, next) {
   // console.log(bounds);
 
   // create pdal pipeline in Json
-  const pdalPipeline = template({eptFilename, bounds, matrixTransformation, polygon });
+  const unique_id = uuidv4();
+  let outFile = unique_id + '-output.las';
+  outFile = 'lidar_x_' + x1 + '_y_' + y1 + '_uid_' + unique_id.slice(-4) + '.las';
+  const pdalPipeline = template({eptFilename, bounds, matrixTransformation, polygon, outFile });
   // console.log(pdalPipeline);
 
   // Generate pdal pipeline file
-  const pdalPipeline_File = uuidv4() + '-pipeline.json';
+  const pdalPipeline_File = unique_id + '-pipeline.json';
+  
   fs.writeFileSync(pdalPipeline_File, JSON.stringify(pdalPipeline, null, 2));
 
   console.log('call pdal... ');
@@ -152,9 +156,10 @@ router.get('/', function(req, res, next) {
   // TODO: Use correct filename for the user
   // const filename = "export_" + Math.floor(p.x1) + "_" + Math.floor(p.y1) + ".las";
 
-  console.log('send file: output.lat');
-  const outputFile = path.resolve(__dirname, '../output.las');
-  res.setHeader('Content-disposition', 'attachment; filename=output.las');
+
+  console.log('send file: ' + outFile);
+  const outputFile = path.resolve(__dirname, '../' + outFile);
+  res.setHeader('Content-disposition', 'attachment; filename=' + outFile);
   res.sendFile(outputFile);
 });
 
