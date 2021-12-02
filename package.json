@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www",
-    "dev": "nodemon -e js ./bin/www"
+    "start": "pm2 start -i max app.js",
+    "dev": "npx supervisor app.js",
+    "stop": "pm2 delete all"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
@@ -19,6 +20,6 @@
   },
   "devDependencies": {
     "loadtest": "^5.1.2",
-    "nodemon": "^2.0.12"
+    "supervisor": "^0.12.0"
   }
 }
