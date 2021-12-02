@@ -18,9 +18,9 @@ var router = express.Router();
 // TODO: Maybe use Winston to log
 var debugModule = require('debug');
 // info log the result of the request
-var info = debugModule('point:info');
+var info = debugModule('points:info');
 // debug is only used to debug !
-var debug = debugModule('point:debug')
+var debug = debugModule('points:debug')
 // debug module basicaly use std error output, we'll use std out
 debug.log = console.log.bind(console);
 info.log = console.log.bind(console);
@@ -128,16 +128,12 @@ router.get('/', function(req, res, next) {
 
   // create pdal pipeline in Json
   const unique_id = uuidv4();
-  let outFile = unique_id + '-output.las';
-  outFile = 'lidar_x_' + x1 + '_y_' + y1 + '_uid_' + unique_id.slice(-4) + '.las';
+  const outFile = 'lidar_x_' + x1 + '_y_' + y1 + '_uid_' + unique_id.slice(-4) + '.las';
   const pdalPipeline = template({eptFilename, bounds, matrixTransformation, polygon, outFile });
-  // debug(pdalPipeline);
-
-  // Generate pdal pipeline file
   const pdalPipeline_File = unique_id + '-pipeline.json';
-  
   fs.writeFileSync(pdalPipeline_File, JSON.stringify(pdalPipeline, null, 2));
 
+  // call pdal
   const comand = 'pdal pipeline -i ' + pdalPipeline_File;
   debug('call pdal subprocess...');
     try {
@@ -161,16 +157,24 @@ router.get('/', function(req, res, next) {
       log(err)
     }
   }
-
-  debug('result file : ' + outFile)
-  // TODO: Use correct filename for the user
-  // const filename = "export_" + Math.floor(p.x1) + "_" + Math.floor(p.y1) + ".las";
+  debug('done');
 
 
-  info('send file: ' + outFile);
+  // Send the file
   const outputFile = path.resolve(__dirname, '../' + outFile);
   res.setHeader('Content-disposition', 'attachment; filename=' + outFile);
-  res.sendFile(outputFile);
+
+  info('send:', outFile);
+  res.sendFile(outputFile, {}, function (err) {
+
+    // remove the LAS file
+    try {
+      fs.unlinkSync(outputFile)
+    } catch(err) {
+     debug(err)
+    }
+  });
+
 });
 
 module.exports = router;
