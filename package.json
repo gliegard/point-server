@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "pm2 start -i max app.js",
-    "dev": "npx supervisor app.js",
+    "start": "DEBUG_COLORS=true DEBUG=point* pm2 start -i max app.js",
+    "dev": "DEBUG_COLORS=true DEBUG=point* npx supervisor app.js",
     "stop": "pm2 delete all"
   },
   "dependencies": {
