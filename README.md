@@ -3,19 +3,26 @@ point-server is a server use to extract pointcloud data.
 
 ## to do
 
-- EPSG input/out parameter. Now it's lamb93 hard coded 
-  - for the request
-  - for the output
-
-- Configuration file to put
+- Configuration using env var
   - EPT folder
   - area limit in m²
+  - port
+
+- Release (start with 0.1.1)
+
+- Disposability https://12factor.net/fr/disposability
+  - use queue worker
+
+- Dev/Prod : continuous deployment
 
 - Tests : 
   - test existing code with unit tests, at least functionnal tests for errors
 
-- Multiple requests in parallel
-  - Use npx + mp2 to manage parallel request
+## to do (bonus)
+
+- EPSG input/out parameter. Now it's lamb93 hard coded
+  - for the request
+  - for the output
 
 - Allow itown planar mode (means serve point cloud in a Non geocentric proj)
   - Use other pipeline template file
