@@ -20,6 +20,6 @@
             "type":"filters.crop",
             "polygon":"POLYGON(({{polygon}}))"
         },
-        "output.las"
+        "{{outFile}}"
     ]
 }

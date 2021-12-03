@@ -2,22 +2,27 @@
 point-server is a server use to extract pointcloud data.
 
 ## to do
-- Easy usage
-  - no bbox to give in parameter
 
-- Robust : 
-  - test existing code with unit tests
+- Configuration using env var
+  - EPT folder
+  - area limit in m²
+  - port
 
-- surface limitation
-  - eq to 30 sec or 1 min max
+- Release (start with 0.1.1)
 
-- Multiple requests in parallel
-  - Test : How to test multiple request ?
-  - Use npx + mp2 to manage parallel request
-  - Avoid creating same pipeline name for each request, create unique id tmp file
+- Disposability https://12factor.net/fr/disposability
+  - use queue worker
 
+- Dev/Prod : continuous deployment
 
-- Configurable Entwine folder to serve
+- Tests : 
+  - test existing code with unit tests, at least functionnal tests for errors
+
+## to do (bonus)
+
+- EPSG input/out parameter. Now it's lamb93 hard coded
+  - for the request
+  - for the output
 
 - Allow itown planar mode (means serve point cloud in a Non geocentric proj)
   - Use other pipeline template file
