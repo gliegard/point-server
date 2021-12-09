@@ -28,15 +28,12 @@ info.log = console.log.bind(console);
 proj4.defs('EPSG:4978', '+proj=geocent +datum=WGS84 +units=m +no_defs');
 proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
 
-const eptFolder = '/media/data/EPT_SUD_Vannes';
-// const eptFolder = '/media/store-idi1/guillaume/EPT_56';
-
-const eptFilename = eptFolder + '/EPT_4978/ept.json';
-const pivotFile = eptFolder + '/metadata/pivotTHREE.json';
+const eptFilename = process.env.EPT_JSON || '/media/data/EPT_SUD_Vannes/EPT_4978/ept.json';
+const pivotFile = process.env.PIVOT_THREEJS  || '/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json';
 
 // 0 means no limit
 // const area_limit_in_square_meter = 0;
-const area_limit_in_square_meter = 100000;
+const area_limit_in_square_meter = process.env.SURFACE_MAX  || 100000;
 
 /* GET points listing. */
 router.get('/', function(req, res, next) {
@@ -135,7 +132,7 @@ router.get('/', function(req, res, next) {
 
   // call pdal
   const comand = 'pdal pipeline -i ' + pdalPipeline_File;
-  debug('call pdal subprocess...');
+  debug('call pdal subprocess : ' + comand);
     try {
     
     execSync(comand);  
@@ -173,6 +170,7 @@ router.get('/', function(req, res, next) {
     } catch(err) {
      debug(err)
     }
+
   });
 
 });
