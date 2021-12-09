@@ -1,0 +1,3 @@
+export EPT_JSON=ept://http://lidarhd.pocgpf.ovh/data/ept/ept.json
+export PIVOT_THREEJS=./testS3_PivotTHREE.json
+export SURFACE_MAX=100000
