@@ -3,16 +3,12 @@ point-server is a server use to extract pointcloud data.
 
 ## to do
 
-- Release (start with 0.1.1)
-
-- Test EPT qui utilise S3
-
 - Avoid return result in the request, just return the download URL
   - New request -> hash -> filename_s3
   - if the filename_s3 already exists, return the download URL
   - otherwise
     - compute the Las file with PDAL
-    - upload the Las file on the S3 folder
+    - upload the Las file on the S3 folder https://www.npmjs.com/package/s3
     - return the download URL
 
 

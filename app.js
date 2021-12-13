@@ -8,6 +8,12 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var pointsRouter = require('./routes/points');
 
+var debug = require('debug')('point-server:app');
+
+const version = process.env.npm_package_version;
+
+debug('start point server version ' + version);
+
 var app = express();
 app.use('/favicon.ico', express.static('public/images/favicon.ico'));
 
@@ -40,8 +46,5 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
-
-const port = process.env.PORT || 3000;
-app.listen(port);
 
 module.exports = app;
