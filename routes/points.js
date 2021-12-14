@@ -35,41 +35,8 @@ const cacheFolder = process.env.CACHE_FOLDER || './cache';
 // const area_limit_in_square_meter = 0;
 const area_limit_in_square_meter = process.env.SURFACE_MAX  || 100000;
 
-  // store the file in a cache
-function storeTheFile(outFile, date, hash, filename) {
 
-  const folder = cacheFolder + '/' + date + '/' + hash;
-  const destFile = folder + '/' + filename;
-  fs.mkdirSync(folder, { recursive: true });
-  fs.copyFileSync(outFile, destFile);
-}
-
-/* GET points listing. */
-router.get('/', function(req, res, next) {
-  
-  let p = req.params;
-
-  let polygon = req.query.poly;
-  if (!polygon) {
-    info("Bad Request: You must specify a polygon to crops")
-    res.status(400).send('Bad Request: You must specify a polygon to crop\n');
-    return;
-  }
-
-  polygon = polygon.replace(/_/g, ' ');
-  polygon_points = polygon.split(',')
-
-  if (polygon_points.length < 3) {
-    info("Bad Request: Polygon must have at least 3 points")
-    res.status(400).send("Bad Request: Polygon must have at least 3 points\n");
-    return;
-  }
-  // Manage Invalid ring. When First point is not equal to the last point.
-  if (polygon_points[0] != polygon_points[polygon_points.length - 1]) {
-    polygon += ',' + polygon_points[0]
-  }
-
-  // compute bounding box
+function computeBoundingBox(polygon_points) {
   const first_point = polygon_points[0].split(' ');
   var x1 = parseFloat(first_point[0]);
   var x2 = x1;
@@ -90,13 +57,91 @@ router.get('/', function(req, res, next) {
     y1 = Math.min(y1, y);
     y2 = Math.max(y2, y);
   }
+
+  return [x1, x2, y1, y2];
+}
+
+function computeArea(x1, x2, y1, y2) {
+  const deltaX = Math.floor(x2 - x1);
+  const deltaY = Math.floor(y2 - y1);
+  const area = Math.floor(deltaX * deltaY);
+  debug('area: ' + deltaX + 'm * ' + deltaY + 'm = ' + area + ' m²');
+  return area;
+}
+
+function computePdalPipeline(polygon, outFile, x1, x2, y1, y2) {
+  let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
+  let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
+  // debug(c1);
+  // debug(c2);
+
+  const pivotJson = fs.readFileSync(pivotFile, {encoding:'utf8', flag:'r'});
+
+  // debug(pivotJson);
+  pivot = JSON.parse(pivotJson);
+
+  const array = pivot["object"]["matrix"];
+  const mat = new THREE.Matrix4().fromArray(array);
+
+  // create matrix for pdal pipeline
+  const matrixTransformation = mat.clone().transpose().toArray().toString().replace(/,/g, ' ');
+
+  mat.invert();
+  c1.applyMatrix4(mat);
+  c2.applyMatrix4(mat);
+
+  // create bounds in for pdal pipeline
+  const bounds = '([' + Math.min(c1.x, c2.x) + ', ' + Math.max(c1.x, c2.x) + '], ['
+      + Math.min(c1.y, c2.y) + ', ' + Math.max(c1.y, c2.y) + '], ['
+      + Math.min(c1.z,c2.z) + ', ' + Math.max(c1.z, c2.z) + '])';
+  // debug(bounds);
+
+  // create pdal pipeline in Json
+  const pdalPipeline = template({eptFilename, bounds, matrixTransformation, polygon, outFile });
+  return pdalPipeline;
+}
+
+  // store the file in a cache
+function storeTheFile(outFile, date, hash, filename) {
+
+  const folder = cacheFolder + '/' + date + '/' + hash;
+  const destFile = folder + '/' + filename;
+  fs.mkdirSync(folder, { recursive: true });
+  fs.copyFileSync(outFile, destFile);
+}
+
+/* GET points listing. */
+router.get('/', function(req, res, next) {
+  
+  let p = req.params;
+
+  let polygon = req.query.poly;
+
+  if (!polygon) {
+    info("Bad Request: You must specify a polygon to crops")
+    res.status(400).send('Bad Request: You must specify a polygon to crop\n');
+    return;
+  }
+
+  polygon = polygon.replace(/_/g, ' ');
+  polygon_points = polygon.split(',')
+
+  if (polygon_points.length < 3) {
+    info("Bad Request: Polygon must have at least 3 points")
+    res.status(400).send("Bad Request: Polygon must have at least 3 points\n");
+    return;
+  }
+  // Manage Invalid ring. When First point is not equal to the last point.
+  if (polygon_points[0] != polygon_points[polygon_points.length - 1]) {
+    polygon += ',' + polygon_points[0]
+  }
+
+  // compute bounding box
+  let [x1, x2, y1, y2] = computeBoundingBox(polygon_points);
   debug('bbox: x: ' + x1 + ' to ' + x2 + ' ; y: ' + y1 + ' to ' + y2)
 
   // compute area
-  const deltaX = Math.floor(x2 - x1);
-  const deltaY = Math.floor(y2 - y1);
-  var area = Math.floor(deltaX * deltaY);
-  debug('area: ' + deltaX + 'm * ' + deltaY + 'm = ' + area + ' m²');
+  const area = computeArea(x1, x2, y1, y2);
 
   // limit on area
   if (area_limit_in_square_meter > 0 && area > area_limit_in_square_meter) {
@@ -138,39 +183,14 @@ router.get('/', function(req, res, next) {
   debug('Create TMP folder : ' + tmpFolder);
   fs.mkdirSync(tmpFolder, { recursive: true })
 
-  let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
-  let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
-  // debug(c1);
-  // debug(c2);
-
-  const pivotJson = fs.readFileSync(pivotFile, {encoding:'utf8', flag:'r'});
-
-  // debug(pivotJson);
-  pivot = JSON.parse(pivotJson);  
-    
-  const array = pivot["object"]["matrix"];
-  const mat = new THREE.Matrix4().fromArray(array);
-
-  // create matrix for pdal pipeline
-  const matrixTransformation = mat.clone().transpose().toArray().toString().replace(/,/g, ' ');
-    
-  mat.invert();
-  c1.applyMatrix4(mat);
-  c2.applyMatrix4(mat);
-
-  // create bounds in for pdal pipeline
-  const bounds = '([' + Math.min(c1.x, c2.x) + ', ' + Math.max(c1.x, c2.x) + '], [' 
-      + Math.min(c1.y, c2.y) + ', ' + Math.max(c1.y, c2.y) + '], [' 
-      + Math.min(c1.z,c2.z) + ', ' + Math.max(c1.z, c2.z) + '])';
-  // debug(bounds);
-
-  // create pdal pipeline in Json
   const outFile = tmpFolder + '/' + filename;
-  const pdalPipeline = template({eptFilename, bounds, matrixTransformation, polygon, outFile });
+
+  // compute pdal pipeline file
+  pdalPipeline = computePdalPipeline(polygon, outFile, x1, x2, y1, y2);
   const pdalPipeline_File = tmpFolder + '/pipeline.json';
   fs.writeFileSync(pdalPipeline_File, JSON.stringify(pdalPipeline, null, 2));
 
-  // call pdal
+  // call PDAL to extract pointcloud
   const comand = 'pdal pipeline -i ' + pdalPipeline_File;
   debug('call pdal subprocess : ' + comand);
     try {
