@@ -8,8 +8,7 @@ const parse = require('json-templates');
 const jsonPdalTemplate = require('../services/pdalPipelineTemplate.json');
 const { spawn, exec, execSync } = require('child_process');
 const path = require('path');
-
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 const template = parse(jsonPdalTemplate);
 
@@ -30,10 +29,20 @@ proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=
 
 const eptFilename = process.env.EPT_JSON || '/media/data/EPT_SUD_Vannes/EPT_4978/ept.json';
 const pivotFile = process.env.PIVOT_THREEJS  || '/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json';
+const cacheFolder = process.env.CACHE_FOLDER || './cache';
 
 // 0 means no limit
 // const area_limit_in_square_meter = 0;
 const area_limit_in_square_meter = process.env.SURFACE_MAX  || 100000;
+
+  // store the file in a cache
+function storeTheFile(outFile, date, hash, filename) {
+
+  const folder = cacheFolder + '/' + date + '/' + hash;
+  const destFile = folder + '/' + filename;
+  fs.mkdirSync(folder, { recursive: true });
+  fs.copyFileSync(outFile, destFile);
+}
 
 /* GET points listing. */
 router.get('/', function(req, res, next) {
@@ -97,6 +106,38 @@ router.get('/', function(req, res, next) {
     return;
   }
 
+  // create hash
+  const md5sum = crypto.createHash('md5');
+  md5sum.update(polygon);
+  const hash = md5sum.digest('hex');
+
+  // create current date
+  var today = new Date();
+  var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+
+	// check if file exist in the cache
+  const filename = 'lidar_x_' + x1 + '_y_' + y1 + '.las';
+  const storedFile = cacheFolder + '/' + date + '/' + hash + '/' + filename;
+
+  debug('Test stored file :' + storedFile);
+  if (fs.existsSync(storedFile)) {
+    info("Return stored file : " + storedFile);
+
+    // Send the file
+    const outputFile = path.resolve(__dirname, '../' + storedFile);
+    res.setHeader('Content-disposition', 'attachment; filename=' + filename);
+
+    info('send:', storedFile);
+    res.sendFile(outputFile);
+    return;
+  }
+  debug('This file does not exist :' + storedFile);
+
+  // create tmp folder
+  const tmpFolder = './tmp/' + hash;
+  debug('Create TMP folder : ' + tmpFolder);
+  fs.mkdirSync(tmpFolder, { recursive: true })
+
   let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
   let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
   // debug(c1);
@@ -124,10 +165,9 @@ router.get('/', function(req, res, next) {
   // debug(bounds);
 
   // create pdal pipeline in Json
-  const unique_id = uuidv4();
-  const outFile = 'lidar_x_' + x1 + '_y_' + y1 + '_uid_' + unique_id.slice(-4) + '.las';
+  const outFile = tmpFolder + '/' + filename;
   const pdalPipeline = template({eptFilename, bounds, matrixTransformation, polygon, outFile });
-  const pdalPipeline_File = unique_id + '-pipeline.json';
+  const pdalPipeline_File = tmpFolder + '/pipeline.json';
   fs.writeFileSync(pdalPipeline_File, JSON.stringify(pdalPipeline, null, 2));
 
   // call pdal
@@ -142,34 +182,38 @@ router.get('/', function(req, res, next) {
     if (err.message.indexOf('pdal: not found') > 0) {
       const tips = 'To fix: conda-activate point-server, before launching the server, to have pdal in the path';
       err.message += tips;
-      log(tips);
+      info(tips);
     }
+
+    // remove tmp folder
+    fs.rm(tmpFolder, { recursive:true }, (err) => {
+      if(err){
+          info(err.message);
+          return;
+      }
+    })
+
     throw new Error(err);
-  }
-  finally {
-    try {
-      fs.unlinkSync(pdalPipeline_File)
-      //file removed
-    } catch(err) {
-      log(err)
-    }
   }
   debug('done');
 
+  // store the file in a cache
+  storeTheFile(outFile, date, hash, filename);
 
   // Send the file
   const outputFile = path.resolve(__dirname, '../' + outFile);
-  res.setHeader('Content-disposition', 'attachment; filename=' + outFile);
+  res.setHeader('Content-disposition', 'attachment; filename=' + filename);
 
   info('send:', outFile);
   res.sendFile(outputFile, {}, function (err) {
 
-    // remove the LAS file
-    try {
-      fs.unlinkSync(outputFile)
-    } catch(err) {
-     debug(err)
-    }
+    // remove tmp folder
+    fs.rm(tmpFolder, { recursive:true }, (err) => {
+      if(err){
+          info(err.message);
+          return;
+      }
+    })
 
   });
 
