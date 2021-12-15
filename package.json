@@ -3,9 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "DEBUG_COLORS=true DEBUG=point* pm2 start -i max app.js",
-    "dev": "DEBUG_COLORS=true DEBUG=point* npx supervisor app.js",
-    "stop": "pm2 delete all"
+    "start": "node ./bin/www",
+    "dev": "npx supervisor ./bin/www",
+    "pm2": "pm2 start -i max ./bin/www",
+    "pm2-stop": "pm2 delete all"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
@@ -15,8 +16,7 @@
     "itowns": "^2.34.0",
     "json-templates": "^4.1.0",
     "morgan": "~1.9.1",
-    "pug": "^3.0.2",
-    "uuid": "^8.3.2"
+    "pug": "^3.0.2"
   },
   "devDependencies": {
     "loadtest": "^5.1.2",

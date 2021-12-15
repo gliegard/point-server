@@ -1,0 +1,3 @@
+export EPT_JSON=non/existing/file
+export PIVOT_THREEJS=non/existing/file
+export PORT=3001

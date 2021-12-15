@@ -1,0 +1,3 @@
+export EPT_JSON=/media/data/EPT_SUD_Vannes/EPT_4978/ept.json
+export PIVOT_THREEJS=/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json
+export SURFACE_MAX=10000

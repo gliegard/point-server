@@ -3,22 +3,27 @@ point-server is a server use to extract pointcloud data.
 
 ## to do
 
-- Configuration using env var
-  - EPT folder
-  - area limit in m²
-  - port
+- continuous deployment
+  - Create a Docker file
+  - Create another git project to make deployment
 
-- Release (start with 0.1.1)
+- Refactor (extract methods)
 
-- Disposability https://12factor.net/fr/disposability
-  - use queue worker
+- Upload the Las file on the S3 folder using a library https://www.npmjs.com/package/s3
+    - Now it's with system call of aws cli.
 
-- Dev/Prod : continuous deployment
+- Test file existence without system call of WGET
 
-- Tests : 
+- 12 factor app : https://12factor.net/fr/
+  - Disposability : Verify graceful shutdown use.
+
+- Tests :
   - test existing code with unit tests, at least functionnal tests for errors
 
+
 ## to do (bonus)
+
+- Fast api (equivalent Python de nodeJS)
 
 - EPSG input/out parameter. Now it's lamb93 hard coded
   - for the request
