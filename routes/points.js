@@ -29,8 +29,14 @@ proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=
 
 const eptFilename = process.env.EPT_JSON || '/media/data/EPT_SUD_Vannes/EPT_4978/ept.json';
 const pivotFile = process.env.PIVOT_THREEJS  || '/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json';
+
+// TODO remove this unused var
 const cacheFolder = process.env.CACHE_FOLDER || './cache';
 
+// Return URL, avoid using the response to send the file; upload the file to the store, and redirect the request
+const returnUrl = process.env.RETURN_URL || true;
+const storeWriteUrl = process.env.STORE_WRITE_URL;
+const storeReadUrl = process.env.STORE_READ_URL;
 // 0 means no limit
 // const area_limit_in_square_meter = 0;
 const area_limit_in_square_meter = process.env.SURFACE_MAX  || 100000;
@@ -101,7 +107,8 @@ function computePdalPipeline(polygon, outFile, x1, x2, y1, y2) {
   return pdalPipeline;
 }
 
-  // store the file in a cache
+// TODO remove this block (caching on disk)
+// store the file in a cache
 function storeTheFile(outFile, date, hash, filename) {
 
   const folder = cacheFolder + '/' + date + '/' + hash;
@@ -162,9 +169,15 @@ router.get('/', function(req, res, next) {
 
 	// check if file exist in the cache
   const filename = 'lidar_x_' + x1 + '_y_' + y1 + '.las';
-  const storedFile = cacheFolder + '/' + date + '/' + hash + '/' + filename;
 
+  const storedFile = storeReadUrl + '/' + date + '/' + hash + '/' + filename;
+
+  // TODO: Test if URL exists (storedFile), if yes, redirect and return.
+
+  /*
+  // TODO: remove this block (caching on disk)
   debug('Test stored file :' + storedFile);
+  const storedFile = cacheFolder + '/' + date + '/' + hash + '/' + filename;
   if (fs.existsSync(storedFile)) {
     info("Return stored file : " + storedFile);
 
@@ -177,6 +190,7 @@ router.get('/', function(req, res, next) {
     return;
   }
   debug('This file does not exist :' + storedFile);
+  */
 
   // create tmp folder
   const tmpFolder = './tmp/' + hash;
@@ -193,7 +207,7 @@ router.get('/', function(req, res, next) {
   // call PDAL to extract pointcloud
   const comand = 'pdal pipeline -i ' + pdalPipeline_File;
   debug('call pdal subprocess : ' + comand);
-    try {
+  try {
     
     execSync(comand);  
   } catch (err){
@@ -208,8 +222,7 @@ router.get('/', function(req, res, next) {
     // remove tmp folder
     fs.rm(tmpFolder, { recursive:true }, (err) => {
       if(err){
-          info(err.message);
-          return;
+        info(err.message);
       }
     })
 
@@ -217,25 +230,56 @@ router.get('/', function(req, res, next) {
   }
   debug('done');
 
-  // store the file in a cache
-  storeTheFile(outFile, date, hash, filename);
+  if (returnUrl) {
 
-  // Send the file
-  const outputFile = path.resolve(__dirname, '../' + outFile);
-  res.setHeader('Content-disposition', 'attachment; filename=' + filename);
+    // put file on the S3 store
+    const s3cmd = 'aws s3 cp ' + outFile + ' ' + storeWriteUrl + '/' + date + '/' + hash + '/' + filename;
+    debug('call aws subprocess : ' + s3cmd);
+    try {
+      execSync(s3cmd);
+    } catch (err){
 
-  info('send:', outFile);
-  res.sendFile(outputFile, {}, function (err) {
+      throw new Error(err);
+    } finally {
 
-    // remove tmp folder
-    fs.rm(tmpFolder, { recursive:true }, (err) => {
-      if(err){
+      // remove tmp folder
+      fs.rm(tmpFolder, { recursive:true }, (err) => {
+        if(err){
           info(err.message);
-          return;
-      }
-    })
+        }
+      })
 
-  });
+    }
+    debug('done');
+
+    info('Return URL: ' + storedFile);
+    res.redirect(storedFile);
+
+  } else {
+
+    // store the file in a cache
+    storeTheFile(outFile, date, hash, filename);
+
+    // Send the file
+    const outputFile = path.resolve(__dirname, '../' + outFile);
+    res.setHeader('Content-disposition', 'attachment; filename=' + filename);
+
+    info('send:', outFile);
+    res.sendFile(outputFile, {}, function (err) {
+
+      // remove tmp folder
+      fs.rm(tmpFolder, { recursive:true }, (err) => {
+        if(err){
+            info(err.message);
+            return;
+        }
+      })
+
+    });
+
+  }
+
+
 
 });
 
