@@ -6,7 +6,7 @@ const fs = require('fs');
 const THREE = require('three');
 const parse = require('json-templates');
 const jsonPdalTemplate = require('../services/pdalPipelineTemplate.json');
-const { spawn, exec, execSync } = require('child_process');
+const { spawnSync, execSync } = require('child_process');
 const path = require('path');
 const crypto = require('crypto');
 
@@ -30,13 +30,11 @@ proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=
 const eptFilename = process.env.EPT_JSON || '/media/data/EPT_SUD_Vannes/EPT_4978/ept.json';
 const pivotFile = process.env.PIVOT_THREEJS  || '/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json';
 
-// TODO remove this unused var
-const cacheFolder = process.env.CACHE_FOLDER || './cache';
-
 // Return URL, avoid using the response to send the file; upload the file to the store, and redirect the request
 const returnUrl = process.env.RETURN_URL || true;
 const storeWriteUrl = process.env.STORE_WRITE_URL;
 const storeReadUrl = process.env.STORE_READ_URL;
+
 // 0 means no limit
 // const area_limit_in_square_meter = 0;
 const area_limit_in_square_meter = process.env.SURFACE_MAX  || 100000;
@@ -107,16 +105,6 @@ function computePdalPipeline(polygon, outFile, x1, x2, y1, y2) {
   return pdalPipeline;
 }
 
-// TODO remove this block (caching on disk)
-// store the file in a cache
-function storeTheFile(outFile, date, hash, filename) {
-
-  const folder = cacheFolder + '/' + date + '/' + hash;
-  const destFile = folder + '/' + filename;
-  fs.mkdirSync(folder, { recursive: true });
-  fs.copyFileSync(outFile, destFile);
-}
-
 /* GET points listing. */
 router.get('/', function(req, res, next) {
   
@@ -172,29 +160,28 @@ router.get('/', function(req, res, next) {
 
   const storedFile = storeReadUrl + '/' + date + '/' + hash + '/' + filename;
 
-  // TODO: Test if URL exists (storedFile), if yes, redirect and return.
+  if (returnUrl) {
 
-  /*
-  // TODO: remove this block (caching on disk)
-  debug('Test stored file :' + storedFile);
-  const storedFile = cacheFolder + '/' + date + '/' + hash + '/' + filename;
-  if (fs.existsSync(storedFile)) {
-    info("Return stored file : " + storedFile);
+    // test file existence on the store
+    const wget = 'wget --spider ' + storedFile;
+    debug('call wget subprocess : ' + wget);
+    const ret = spawnSync('wget', ['--spider', storedFile]);
+    if (ret.error) {
+      console.log('Error', ret.error);
+      throw new Error(ret.error);
+    }
 
-    // Send the file
-    const outputFile = path.resolve(__dirname, '../' + storedFile);
-    res.setHeader('Content-disposition', 'attachment; filename=' + filename);
-
-    info('send:', storedFile);
-    res.sendFile(outputFile);
-    return;
+    // if file exist, return the URL
+    if (ret.status == 0) {
+      info('File exist on the store, return URL: ' + storedFile);
+      res.redirect(storedFile);
+      return
+    }
   }
-  debug('This file does not exist :' + storedFile);
-  */
 
   // create tmp folder
   const tmpFolder = './tmp/' + hash;
-  debug('Create TMP folder : ' + tmpFolder);
+  debug('create tmp folder : ' + tmpFolder);
   fs.mkdirSync(tmpFolder, { recursive: true })
 
   const outFile = tmpFolder + '/' + filename;
@@ -271,7 +258,6 @@ router.get('/', function(req, res, next) {
       fs.rm(tmpFolder, { recursive:true }, (err) => {
         if(err){
             info(err.message);
-            return;
         }
       })
 
