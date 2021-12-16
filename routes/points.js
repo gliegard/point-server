@@ -220,7 +220,7 @@ router.get('/', function(req, res, next) {
   if (returnUrl) {
 
     // put file on the S3 store
-    const s3cmd = 'aws s3 cp ' + outFile + ' ' + storeWriteUrl + '/' + date + '/' + hash + '/' + filename;
+    const s3cmd = 's3cmd put ' + outFile + ' ' + storeWriteUrl + '/' + date + '/' + hash + '/' + filename;
     debug('call aws subprocess : ' + s3cmd);
     try {
       execSync(s3cmd);
