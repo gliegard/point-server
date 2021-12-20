@@ -4,6 +4,7 @@ point-server is a server use to extract pointcloud data.
 ## to do
 
 - Make async code
+  - extract.computePdalPipeline : avoid reading pivot file for each request.
   - use uid instead of mkdir tmp folders
   - use callbacks
 
@@ -15,8 +16,6 @@ point-server is a server use to extract pointcloud data.
 - continuous deployment
   - Create a Docker file
   - Create another git project to make deployment
-
-- Refactor (extract methods)
 
 - Upload the Las file on the S3 folder using a library https://www.npmjs.com/package/s3
     - Now it's with system call of aws cli.
