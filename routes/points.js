@@ -9,6 +9,7 @@ const jsonPdalTemplate = require('../services/pdalPipelineTemplate.json');
 const { spawnSync, execSync } = require('child_process');
 const path = require('path');
 const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 
 const template = parse(jsonPdalTemplate);
 
@@ -31,7 +32,9 @@ const eptFilename = process.env.EPT_JSON || '/media/data/EPT_SUD_Vannes/EPT_4978
 const pivotFile = process.env.PIVOT_THREEJS  || '/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json';
 
 // Return URL, avoid using the response to send the file; upload the file to the store, and redirect the request
-const returnUrl = process.env.RETURN_URL || true;
+const returnUrlString = process.env.RETURN_URL || 'true';
+const returnUrl = returnUrlString === 'true';
+
 const storeWriteUrl = process.env.STORE_WRITE_URL;
 const storeReadUrl = process.env.STORE_READ_URL;
 
@@ -179,8 +182,11 @@ router.get('/', function(req, res, next) {
     }
   }
 
+  // use uniqe id
+  const unique_id = uuidv4();
+
   // create tmp folder
-  const tmpFolder = './tmp/' + hash;
+  const tmpFolder = './tmp/' + unique_id;
   debug('create tmp folder : ' + tmpFolder);
   fs.mkdirSync(tmpFolder, { recursive: true })
 
@@ -244,15 +250,16 @@ router.get('/', function(req, res, next) {
 
   } else {
 
-    // store the file in a cache
-    storeTheFile(outFile, date, hash, filename);
-
     // Send the file
     const outputFile = path.resolve(__dirname, '../' + outFile);
     res.setHeader('Content-disposition', 'attachment; filename=' + filename);
 
     info('send:', outFile);
     res.sendFile(outputFile, {}, function (err) {
+
+      if(err){
+        info(err.message);
+      }
 
       // remove tmp folder
       fs.rm(tmpFolder, { recursive:true }, (err) => {

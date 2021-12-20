@@ -3,6 +3,15 @@ point-server is a server use to extract pointcloud data.
 
 ## to do
 
+- Make async code
+  - use uid instead of mkdir tmp folders
+  - use callbacks
+
+- Tests :
+  - test existing code with unit tests, at least functionnal tests for errors
+
+- Make this repo public
+
 - continuous deployment
   - Create a Docker file
   - Create another git project to make deployment
@@ -17,13 +26,8 @@ point-server is a server use to extract pointcloud data.
 - 12 factor app : https://12factor.net/fr/
   - Disposability : Verify graceful shutdown use.
 
-- Tests :
-  - test existing code with unit tests, at least functionnal tests for errors
-
 
 ## to do (bonus)
-
-- Fast api (equivalent Python de nodeJS)
 
 - EPSG input/out parameter. Now it's lamb93 hard coded
   - for the request
@@ -31,8 +35,6 @@ point-server is a server use to extract pointcloud data.
 
 - Allow itown planar mode (means serve point cloud in a Non geocentric proj)
   - Use other pipeline template file
-
-- Doc for every mode (planar, geocentric, which folder to serve, polygone mode or not)
 
 
 ## get started
