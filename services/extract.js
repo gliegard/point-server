@@ -92,7 +92,7 @@ function computeTodayDateFormatted() {
 }
   
 
-function computePdalPipeline(eptFilename, pivotJson, polygon, outFile, x1, x2, y1, y2) {
+function computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2) {
     let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
     let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
     // debug(c1);

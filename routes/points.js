@@ -26,7 +26,7 @@ const returnUrl = returnUrlString === 'true';
 const storeWriteUrl = process.env.STORE_WRITE_URL;
 const storeReadUrl = process.env.STORE_READ_URL;
 
-var pivotJson;
+const tmpFolder = './tmp';
 
 function init() {
   extract.init(pivotFile);
@@ -38,6 +38,13 @@ init();
 // const area_limit_in_square_meter = 0;
 const area_limit_in_square_meter = process.env.SURFACE_MAX  || 100000;
 
+function removeFileASync(file) {
+  fs.rm(file, { recursive:true }, (err) => {
+    if(err){
+      info(err.message);
+    }
+  })
+}
 
 /* GET points listing. */
 router.get('/', function(req, res, next) {
@@ -113,17 +120,12 @@ router.get('/', function(req, res, next) {
   // use uniqe id
   const unique_id = uuidv4();
 
-  // create tmp folder
-  const tmpFolder = './tmp/' + unique_id;
-  debug('create tmp folder : ' + tmpFolder);
-  fs.mkdirSync(tmpFolder, { recursive: true })
-
-  const outFile = tmpFolder + '/' + filename;
+  const outFile = tmpFolder + '/' + unique_id + '-' + filename;
 
   // compute pdal pipeline file
-  pdalPipeline = extract.computePdalPipeline(eptFilename, pivotJson, polygon, outFile, x1, x2, y1, y2);
+  pdalPipeline = extract.computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2);
 
-  const pdalPipeline_File = tmpFolder + '/pipeline.json';
+  const pdalPipeline_File = tmpFolder + '/' + unique_id + '-pipeline.json';
   fs.writeFileSync(pdalPipeline_File, JSON.stringify(pdalPipeline, null, 2));
 
   // call PDAL to extract pointcloud
@@ -139,16 +141,10 @@ router.get('/', function(req, res, next) {
       const tips = 'To fix: conda-activate point-server, before launching the server, to have pdal in the path';
       err.message += tips;
       info(tips);
-    }
-
-    // remove tmp folder
-    fs.rm(tmpFolder, { recursive:true }, (err) => {
-      if(err){
-        info(err.message);
-      }
-    })
-
+    }  
     throw new Error(err);
+  } finally {
+    removeFileASync(pdalPipeline_File);
   }
   debug('done');
 
@@ -160,17 +156,10 @@ router.get('/', function(req, res, next) {
     try {
       execSync(s3cmd);
     } catch (err){
-
       throw new Error(err);
     } finally {
 
-      // remove tmp folder
-      fs.rm(tmpFolder, { recursive:true }, (err) => {
-        if(err){
-          info(err.message);
-        }
-      })
-
+      removeFileASync(outFile);
     }
     debug('done');
 
@@ -190,13 +179,7 @@ router.get('/', function(req, res, next) {
         info(err.message);
       }
 
-      // remove tmp folder
-      fs.rm(tmpFolder, { recursive:true }, (err) => {
-        if(err){
-            info(err.message);
-        }
-      })
-
+      removeFileASync(outFile);
     });
 
   }

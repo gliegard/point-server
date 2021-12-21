@@ -4,9 +4,8 @@ point-server is a server use to extract pointcloud data.
 ## to do
 
 - Make async code
-  - extract.computePdalPipeline : avoid reading pivot file for each request.
-  - use uid instead of mkdir tmp folders
-  - use callbacks
+  - avoid writing pipeline file on the disk !
+  - use callbacks (instead of every execSync)
 
 - Tests :
   - test existing code with unit tests, at least functionnal tests for errors
