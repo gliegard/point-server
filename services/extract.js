@@ -10,12 +10,39 @@ const THREE = require('three');
 
 const crypto = require('crypto');
 const fs = require('fs');
-var debug = require('debug')('extract:debug');
+var debug = require('debug')('points:extract');
 
 // proj4 hard coded default proj
 const proj4 = require('proj4');
 proj4.defs('EPSG:4978', '+proj=geocent +datum=WGS84 +units=m +no_defs');
 proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+
+// THREE JS matrix used as pivot
+var mat;
+var matrixTransformation;
+
+function init(pivotFile) {
+  fs.readFile(pivotFile, 'utf8' , (err, data) => {
+    if (err) {
+      console.error(err);
+      return
+    }
+
+    initMatrix(data);
+    debug('martix loaded');
+  })
+}
+
+function initMatrix(pivotJson) {
+  const pivot = JSON.parse(pivotJson);
+
+  const array = pivot["object"]["matrix"];
+  mat = new THREE.Matrix4().fromArray(array);
+
+  // create matrix for pdal pipeline
+  matrixTransformation = mat.clone().transpose().toArray().toString().replace(/,/g, ' ');
+  mat.invert();
+}
 
 
 function computeBoundingBox(polygon_points) {
@@ -43,45 +70,34 @@ function computeBoundingBox(polygon_points) {
     return [x1, x2, y1, y2];
   }
 
-  function computeArea(x1, x2, y1, y2) {
-    const deltaX = Math.floor(x2 - x1);
-    const deltaY = Math.floor(y2 - y1);
-    const area = Math.floor(deltaX * deltaY);
-    debug('area: ' + deltaX + 'm * ' + deltaY + 'm = ' + area + ' m²');
-    return area;
-  }
+function computeArea(x1, x2, y1, y2) {
+  const deltaX = Math.floor(x2 - x1);
+  const deltaY = Math.floor(y2 - y1);
+  const area = Math.floor(deltaX * deltaY);
+  debug('area: ' + deltaX + 'm * ' + deltaY + 'm = ' + area + ' m²');
+  return area;
+}
 
-  function computeHash(polygon) {
-    const md5sum = crypto.createHash('md5');
-    md5sum.update(polygon);
-    const hash = md5sum.digest('hex');
-    return hash;
-  }
+function computeHash(polygon) {
+  const md5sum = crypto.createHash('md5');
+  md5sum.update(polygon);
+  const hash = md5sum.digest('hex');
+  return hash;
+}
 
-  function computeTodayDateFormatted() {
-    var today = new Date();
-    var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
-    return date;
-  }
+function computeTodayDateFormatted() {
+  var today = new Date();
+  var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+  return date;
+}
   
 
-function computePdalPipeline(eptFilename, pivotFile, polygon, outFile, x1, x2, y1, y2) {
+function computePdalPipeline(eptFilename, pivotJson, polygon, outFile, x1, x2, y1, y2) {
     let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
     let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
     // debug(c1);
     // debug(c2);
-  
-    // read Pivot from file
-    const pivotJson = fs.readFileSync(pivotFile, {encoding:'utf8', flag:'r'});
-    pivot = JSON.parse(pivotJson);
 
-    const array = pivot["object"]["matrix"];
-    const mat = new THREE.Matrix4().fromArray(array);
-  
-    // create matrix for pdal pipeline
-    const matrixTransformation = mat.clone().transpose().toArray().toString().replace(/,/g, ' ');
-  
-    mat.invert();
     c1.applyMatrix4(mat);
     c2.applyMatrix4(mat);
   
@@ -97,6 +113,7 @@ function computePdalPipeline(eptFilename, pivotFile, polygon, outFile, x1, x2, y
   }
 
   module.exports = {
+    init,
     computeBoundingBox,
     computeArea,
     computeHash,

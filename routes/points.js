@@ -26,6 +26,14 @@ const returnUrl = returnUrlString === 'true';
 const storeWriteUrl = process.env.STORE_WRITE_URL;
 const storeReadUrl = process.env.STORE_READ_URL;
 
+var pivotJson;
+
+function init() {
+  extract.init(pivotFile);
+}
+
+init();
+
 // 0 means no limit
 // const area_limit_in_square_meter = 0;
 const area_limit_in_square_meter = process.env.SURFACE_MAX  || 100000;
@@ -113,7 +121,7 @@ router.get('/', function(req, res, next) {
   const outFile = tmpFolder + '/' + filename;
 
   // compute pdal pipeline file
-  pdalPipeline = extract.computePdalPipeline(eptFilename, pivotFile, polygon, outFile, x1, x2, y1, y2);
+  pdalPipeline = extract.computePdalPipeline(eptFilename, pivotJson, polygon, outFile, x1, x2, y1, y2);
 
   const pdalPipeline_File = tmpFolder + '/pipeline.json';
   fs.writeFileSync(pdalPipeline_File, JSON.stringify(pdalPipeline, null, 2));
