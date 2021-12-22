@@ -19,9 +19,15 @@ info.log = console.log.bind(console);
 const eptFilename = process.env.EPT_JSON || '/media/data/EPT_SUD_Vannes/EPT_4978/ept.json';
 const pivotFile = process.env.PIVOT_THREEJS  || '/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json';
 
-// Return URL, avoid using the response to send the file; upload the file to the store, and redirect the request
+// RETURN_URL env var: true: avoid using the response to send the file; upload the file to the store, and redirect the request.
+// RETURN_URL env var: false:  in dev mode, if you don't have S3 file store.
 const returnUrlString = process.env.RETURN_URL || 'true';
 const returnUrl = returnUrlString === 'true';
+
+// WRITE_PDAL_PIPELINE_FILE env var: true: Write the PDAL pipeline file on the disk, to debug, make code sync (bad thing)
+// WRITE_PDAL_PIPELINE_FILE env var: false: Default behavior
+const writePdalPipelineFileString = process.env.WRITE_PDAL_PIPELINE_FILE || 'false';
+const writePdalPipelineFile = writePdalPipelineFileString === 'true';
 
 const storeWriteUrl = process.env.STORE_WRITE_URL;
 const storeReadUrl = process.env.STORE_READ_URL;
@@ -123,30 +129,25 @@ router.get('/', function(req, res, next) {
   const outFile = tmpFolder + '/' + unique_id + '-' + filename;
 
   // compute pdal pipeline file
-  pdalPipeline = extract.computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2);
+  const pdalPipelineFilename = tmpFolder + '/' + unique_id + '-pipeline.json';
+  const pdalPipelineJSON = extract.computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2);
 
-  const pdalPipeline_File = tmpFolder + '/' + unique_id + '-pipeline.json';
-  fs.writeFileSync(pdalPipeline_File, JSON.stringify(pdalPipeline, null, 2));
+  // spawn child process
+  const child = extract.spawnPdal(next, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
 
-  // call PDAL to extract pointcloud
-  const comand = 'pdal pipeline -i ' + pdalPipeline_File;
-  debug('call pdal subprocess : ' + comand);
-  try {
-    
-    execSync(comand);  
-  } catch (err){
+  child.on('close', (code) => {
 
-    // Handle 'pdal not found' error
-    if (err.message.indexOf('pdal: not found') > 0) {
-      const tips = 'To fix: conda-activate point-server, before launching the server, to have pdal in the path';
-      err.message += tips;
-      info(tips);
-    }  
-    throw new Error(err);
-  } finally {
-    removeFileASync(pdalPipeline_File);
-  }
-  debug('done');
+    debug('done');
+    if (code == 0) {
+      onFileCreated(res, outFile, date, hash, filename);
+    }
+
+  });
+
+
+});
+
+function onFileCreated(res, outFile, date, hash, filename) {
 
   if (returnUrl) {
 
@@ -185,7 +186,6 @@ router.get('/', function(req, res, next) {
   }
 
 
-
-});
+}
 
 module.exports = router;

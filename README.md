@@ -4,8 +4,8 @@ point-server is a server use to extract pointcloud data.
 ## to do
 
 - Make async code
-  - avoid writing pipeline file on the disk !
   - use callbacks (instead of every execSync)
+    - verify error handling ;)
 
 - Tests :
   - test existing code with unit tests, at least functionnal tests for errors

@@ -2,6 +2,7 @@
 const parse = require('json-templates');
 const jsonPdalTemplate = require('./pdalPipelineTemplate.json');
 const template = parse(jsonPdalTemplate);
+const { spawn } = require('child_process');
 
 // 3d stuff
 require('../services/itowns-common');
@@ -10,7 +11,9 @@ const THREE = require('three');
 
 const crypto = require('crypto');
 const fs = require('fs');
-var debug = require('debug')('points:extract');
+
+var debug = require('debug')('point-extract:debug');
+var info = require('debug')('point-extract:info');
 
 // proj4 hard coded default proj
 const proj4 = require('proj4');
@@ -109,7 +112,44 @@ function computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2) {
   
     // create pdal pipeline in Json
     const pdalPipeline = template({eptFilename, bounds, matrixTransformation, polygon, outFile });
-    return pdalPipeline;
+    return JSON.stringify(pdalPipeline, null, 2)
+  }
+
+  function spawnPdal(next, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename) {
+    var args = ['pipeline', '-s'];
+    if (writePdalPipelineFile) {
+      debug('Write PDAL pipeline file on the disk');
+      fs.writeFileSync(pdalPipelineFilename, pdalPipelineJSON);
+
+      args = ['pipeline', '-i', pdalPipelineFilename];
+    }
+    // call PDAL to extract pointcloud
+    debug('call pdal subprocess : pdal ' + args);
+    const child = spawn('pdal', args);
+
+    child.on('error', (err) => {
+
+      info('Failed to start PDAL subprocess.' + err.message);
+
+      // Handle 'pdal not found' error
+      if (err.message.indexOf('ENOENT') > 0) {
+        const tips = ' To fix: conda-activate point-server, before launching the server, to have pdal in the path';
+        err.message += tips;
+        info(tips);
+      }
+
+      next(new Error(err));
+    });
+
+    if (!writePdalPipelineFile) {
+      child.stdin.setEncoding('utf-8');
+      child.stdin.cork();
+      child.stdin.write(pdalPipelineJSON);
+      child.stdin.uncork();
+      child.stdin.end();
+    }
+
+    return child;
   }
 
   module.exports = {
@@ -118,5 +158,6 @@ function computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2) {
     computeArea,
     computeHash,
     computeTodayDateFormatted,
-    computePdalPipeline
+    computePdalPipeline,
+    spawnPdal
   }
