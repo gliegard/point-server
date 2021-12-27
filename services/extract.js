@@ -156,6 +156,41 @@ function computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2) {
     return child;
   }
 
+
+function spawnS3cmdPut(next, newFile, storedFileWrite) {
+
+  const args = ['put', newFile, storedFileWrite]
+  debug('call s3cmd subprocess : s3cmd ' + args);
+  const child = spawn('s3cmd', args);
+
+  child.stderr.on('data', (data) => {
+    next(new Error(data));
+  });
+
+  child.on('error', (err) => {
+    info('Failed to start S3CMD subprocess.' + err.message);
+    next(new Error(err));
+  });
+
+  return child;
+}
+
+function spawnWget(next, storedFileRead) {
+
+  const child = spawn('wget', ['--spider', storedFileRead]);
+
+  child.stderr.on('data', (data) => {
+    next(new Error(data));
+  });
+
+  child.on('error', (err) => {
+    info('Failed to start Wget subprocess.' + err.message);
+    next(new Error(err));
+  });
+
+  return child;
+}
+
   module.exports = {
     init,
     computeBoundingBox,
@@ -163,5 +198,6 @@ function computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2) {
     computeHash,
     computeTodayDateFormatted,
     computePdalPipeline,
-    spawnPdal
+    spawnPdal,
+    spawnS3cmdPut,
   }

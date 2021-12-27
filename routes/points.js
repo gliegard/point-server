@@ -1,7 +1,7 @@
 const extract = require('../services/extract');
 var express = require('express');
+const { spawnSync } = require('child_process');
 const fs = require('fs');
-const { spawnSync, execSync } = require('child_process');
 const path = require('path');
 
 const { v4: uuidv4 } = require('uuid');
@@ -140,58 +140,53 @@ router.get('/', function(req, res, next) {
   child.on('close', (code) => {
 
     debug('done');
+
     if (code == 0) {
-      onFileCreated(res, newFile, storedFileRead, storedFileWrite, filename);
+
+      if (returnUrl) {
+
+        storeFileAndReturnStoreURL(next, res, newFile, storedFileRead, storedFileWrite);
+      } else {
+
+        sendFileInTheResponse(res, newFile, filename);
+      }
     }
   });
 
-
 });
 
-function storeFileS3(newFile, storedFileWrite) {
+function storeFileAndReturnStoreURL(next, res, newFile, storedFileRead, storedFileWrite) {
 
-  // put file on the S3 store
-  const s3cmd = 's3cmd put ' + newFile + ' ' + storedFileWrite;
-  debug('call aws subprocess : ' + s3cmd);
-  try {
-    execSync(s3cmd);
-  } catch (err){
-    throw new Error(err);
-  } finally {
+  const child = extract.spawnS3cmdPut(next, newFile, storedFileWrite)
+
+  child.on('close', (code) => {
 
     removeFileASync(newFile);
-  }
-  debug('done');
+
+    debug('done');
+    if (code == 0) {
+
+      info('Return URL: ' + storedFileRead);
+      res.redirect(storedFileRead);
+    }
+  });
+
 }
 
-function onFileCreated(res, newFile, storedFileRead, storedFileWrite, filename) {
+function sendFileInTheResponse(res, newFile, filename) {
 
-  if (returnUrl) {
+  const outputFile = path.resolve(__dirname, '../' + newFile);
+  res.setHeader('Content-disposition', 'attachment; filename=' + filename);
 
-    storeFileS3(newFile, storedFileWrite)
+  info('send:', newFile);
+  res.sendFile(outputFile, {}, function (err) {
 
-    info('Return URL: ' + storedFileRead);
-    res.redirect(storedFileRead);
+    if(err){
+      info(err.message);
+    }
 
-  } else {
-
-    // Send the file
-    const outputFile = path.resolve(__dirname, '../' + newFile);
-    res.setHeader('Content-disposition', 'attachment; filename=' + filename);
-
-    info('send:', newFile);
-    res.sendFile(outputFile, {}, function (err) {
-
-      if(err){
-        info(err.message);
-      }
-
-      removeFileASync(newFile);
-    });
-
-  }
-
-
+    removeFileASync(newFile);
+  });
 }
 
 module.exports = router;
