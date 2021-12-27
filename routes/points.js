@@ -100,16 +100,18 @@ router.get('/', function(req, res, next) {
   const date = extract.computeTodayDateFormatted();
 
 	// check if file exist in the cache
-  const filename = 'lidar_x_' + x1 + '_y_' + y1 + '.las';
+  const filename = 'lidar_x_' + Math.floor(x1) + '_y_' + Math.floor(y1) + '.las';
 
-  const storedFile = storeReadUrl + '/' + date + '/' + hash + '/' + filename;
+  const storedFileRead = storeReadUrl + '/' + date + '/' + hash + '/' + filename;
+  
+  const storedFileWrite = storeWriteUrl + '/' + date + '/' + hash + '/' + filename;
 
   if (returnUrl) {
 
     // test file existence on the store
-    const wget = 'wget --spider ' + storedFile;
+    const wget = 'wget --spider ' + storedFileRead;
     debug('call wget subprocess : ' + wget);
-    const ret = spawnSync('wget', ['--spider', storedFile]);
+    const ret = spawnSync('wget', ['--spider', storedFileRead]);
     if (ret.error) {
       console.log('Error', ret.error);
       throw new Error(ret.error);
@@ -117,8 +119,8 @@ router.get('/', function(req, res, next) {
 
     // if file exist, return the URL
     if (ret.status == 0) {
-      info('File exist on the store, return URL: ' + storedFile);
-      res.redirect(storedFile);
+      info('File exist on the store, return URL: ' + storedFileRead);
+      res.redirect(storedFileRead);
       return
     }
   }
@@ -126,11 +128,11 @@ router.get('/', function(req, res, next) {
   // use uniqe id
   const unique_id = uuidv4();
 
-  const outFile = tmpFolder + '/' + unique_id + '-' + filename;
+  const newFile = tmpFolder + '/' + unique_id + '-' + filename;
 
   // compute pdal pipeline file
   const pdalPipelineFilename = tmpFolder + '/' + unique_id + '-pipeline.json';
-  const pdalPipelineJSON = extract.computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2);
+  const pdalPipelineJSON = extract.computePdalPipeline(eptFilename, polygon, newFile, x1, x2, y1, y2);
 
   // spawn child process
   const child = extract.spawnPdal(next, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
@@ -139,48 +141,52 @@ router.get('/', function(req, res, next) {
 
     debug('done');
     if (code == 0) {
-      onFileCreated(res, outFile, date, hash, filename);
+      onFileCreated(res, newFile, storedFileRead, storedFileWrite, filename);
     }
-
   });
 
 
 });
 
-function onFileCreated(res, outFile, date, hash, filename) {
+function storeFileS3(newFile, storedFileWrite) {
+
+  // put file on the S3 store
+  const s3cmd = 's3cmd put ' + newFile + ' ' + storedFileWrite;
+  debug('call aws subprocess : ' + s3cmd);
+  try {
+    execSync(s3cmd);
+  } catch (err){
+    throw new Error(err);
+  } finally {
+
+    removeFileASync(newFile);
+  }
+  debug('done');
+}
+
+function onFileCreated(res, newFile, storedFileRead, storedFileWrite, filename) {
 
   if (returnUrl) {
 
-    // put file on the S3 store
-    const s3cmd = 's3cmd put ' + outFile + ' ' + storeWriteUrl + '/' + date + '/' + hash + '/' + filename;
-    debug('call aws subprocess : ' + s3cmd);
-    try {
-      execSync(s3cmd);
-    } catch (err){
-      throw new Error(err);
-    } finally {
+    storeFileS3(newFile, storedFileWrite)
 
-      removeFileASync(outFile);
-    }
-    debug('done');
-
-    info('Return URL: ' + storedFile);
-    res.redirect(storedFile);
+    info('Return URL: ' + storedFileRead);
+    res.redirect(storedFileRead);
 
   } else {
 
     // Send the file
-    const outputFile = path.resolve(__dirname, '../' + outFile);
+    const outputFile = path.resolve(__dirname, '../' + newFile);
     res.setHeader('Content-disposition', 'attachment; filename=' + filename);
 
-    info('send:', outFile);
+    info('send:', newFile);
     res.sendFile(outputFile, {}, function (err) {
 
       if(err){
         info(err.message);
       }
 
-      removeFileASync(outFile);
+      removeFileASync(newFile);
     });
 
   }

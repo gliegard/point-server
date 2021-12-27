@@ -127,6 +127,10 @@ function computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2) {
     debug('call pdal subprocess : pdal ' + args);
     const child = spawn('pdal', args);
 
+    child.stderr.on('data', (data) => {
+      next(new Error(data));
+    });
+
     child.on('error', (err) => {
 
       info('Failed to start PDAL subprocess.' + err.message);
