@@ -6,6 +6,8 @@ const path = require('path');
 
 const { v4: uuidv4 } = require('uuid');
 
+var urlExists = require('url-exists');
+
 var router = express.Router();
 
 // debug stuff
@@ -78,6 +80,7 @@ router.get('/', function(req, res, next) {
     polygon += ',' + polygon_points[0]
   }
 
+  // object to store many variables
   const algo = {};
   algo.polygon = polygon;
   // compute bounding box
@@ -97,41 +100,37 @@ router.get('/', function(req, res, next) {
 
   // create hash
   const hash = extract.computeHash(polygon);
-
-  // create current date
   const date = extract.computeTodayDateFormatted();
 
-	// check if file exist in the cache
-  const filename = 'lidar_x_' + Math.floor(algo.x1) + '_y_' + Math.floor(algo.y1) + '.las';
-
-  const storedFileRead = storeReadUrl + '/' + date + '/' + hash + '/' + filename;
-  
-  const storedFileWrite = storeWriteUrl + '/' + date + '/' + hash + '/' + filename;
-
-  algo.filename = filename;
-  algo.storedFileRead = storedFileRead;
-  algo.storedFileWrite = storedFileWrite;
+	// create file names and url
+  algo.filename = 'lidar_x_' + Math.floor(algo.x1) + '_y_' + Math.floor(algo.y1) + '.las';
+  algo.storedFileRead = storeReadUrl + '/' + date + '/' + hash + '/' + algo.filename;
+  algo.storedFileWrite = storeWriteUrl + '/' + date + '/' + hash + '/' + algo.filename;
 
   if (returnUrl) {
 
-    // test file existence on the store
-    const wget = 'wget --spider ' + storedFileRead;
-    debug('call wget subprocess : ' + wget);
-    const ret = spawnSync('wget', ['--spider', storedFileRead]);
-    if (ret.error) {
-      console.log('Error', ret.error);
-      throw new Error(ret.error);
-    }
+    // test url existence
+    urlExists(algo.storedFileRead, function(err, exists) {
+      if (err) {
+        next(new Error(err));
+      }
 
-    // if file exist, return the URL
-    if (ret.status == 0) {
-      info('File exist on the store, return URL: ' + storedFileRead);
-      res.redirect(storedFileRead);
-      return
-    }
+      // if file exists send redirect
+      if (exists) {
+        info('File exist on the store, return URL: ' + algo.storedFileRead);
+        res.redirect(algo.storedFileRead);
+      } else {
+
+        extractPointCloud(next, res, algo);
+      }
+    });
+
+  } else {
+
+    extractPointCloud(next, res, algo);
   }
 
-  extractPointCloud(next, res, algo);
+
 });
 
 function extractPointCloud(next, res, algo) {
@@ -156,7 +155,7 @@ function extractPointCloud(next, res, algo) {
 
       if (returnUrl) {
 
-        storeFileAndReturnStoreURL(next, res, newFile, algo.storedFileRead, algo.storedFileWrite);
+        storeFileAndReturnURL(next, res, newFile, algo.storedFileRead, algo.storedFileWrite);
       } else {
 
         sendFileInTheResponse(res, newFile, algo.filename);
@@ -166,7 +165,7 @@ function extractPointCloud(next, res, algo) {
 
 }
 
-function storeFileAndReturnStoreURL(next, res, newFile, storedFileRead, storedFileWrite) {
+function storeFileAndReturnURL(next, res, newFile, storedFileRead, storedFileWrite) {
 
   const child = extract.spawnS3cmdPut(next, newFile, storedFileWrite)
 
