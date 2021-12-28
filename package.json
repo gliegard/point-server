@@ -6,7 +6,8 @@
     "start": "node ./bin/www",
     "dev": "npx supervisor ./bin/www",
     "pm2": "pm2 start -i max ./bin/www",
-    "pm2-stop": "pm2 delete all"
+    "pm2-stop": "pm2 delete all",
+    "test": "mocha"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "loadtest": "^5.1.2",
+    "mocha": "^9.1.3",
     "supervisor": "^0.12.0"
   }
 }
