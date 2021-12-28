@@ -78,12 +78,14 @@ router.get('/', function(req, res, next) {
     polygon += ',' + polygon_points[0]
   }
 
+  const algo = {};
+  algo.polygon = polygon;
   // compute bounding box
-  let [x1, x2, y1, y2] = extract.computeBoundingBox(polygon_points);
-  debug('bbox: x: ' + x1 + ' to ' + x2 + ' ; y: ' + y1 + ' to ' + y2)
+  [algo.x1, algo.x2, algo.y1, algo.y2] = extract.computeBoundingBox(polygon_points);
+  debug('bbox: x: ' + algo.x1 + ' to ' + algo.x2 + ' ; y: ' + algo.y1 + ' to ' + algo.y2)
 
   // compute area
-  const area = extract.computeArea(x1, x2, y1, y2);
+  const area = extract.computeArea(algo.x1, algo.x2, algo.y1, algo.y2);
 
   // limit on area
   if (area_limit_in_square_meter > 0 && area > area_limit_in_square_meter) {
@@ -100,11 +102,15 @@ router.get('/', function(req, res, next) {
   const date = extract.computeTodayDateFormatted();
 
 	// check if file exist in the cache
-  const filename = 'lidar_x_' + Math.floor(x1) + '_y_' + Math.floor(y1) + '.las';
+  const filename = 'lidar_x_' + Math.floor(algo.x1) + '_y_' + Math.floor(algo.y1) + '.las';
 
   const storedFileRead = storeReadUrl + '/' + date + '/' + hash + '/' + filename;
   
   const storedFileWrite = storeWriteUrl + '/' + date + '/' + hash + '/' + filename;
+
+  algo.filename = filename;
+  algo.storedFileRead = storedFileRead;
+  algo.storedFileWrite = storedFileWrite;
 
   if (returnUrl) {
 
@@ -125,14 +131,19 @@ router.get('/', function(req, res, next) {
     }
   }
 
+  extractPointCloud(next, res, algo);
+});
+
+function extractPointCloud(next, res, algo) {
+
   // use uniqe id
   const unique_id = uuidv4();
+  const newFile = tmpFolder + '/' + unique_id + '-' + algo.filename;
 
-  const newFile = tmpFolder + '/' + unique_id + '-' + filename;
-
+  
   // compute pdal pipeline file
   const pdalPipelineFilename = tmpFolder + '/' + unique_id + '-pipeline.json';
-  const pdalPipelineJSON = extract.computePdalPipeline(eptFilename, polygon, newFile, x1, x2, y1, y2);
+  const pdalPipelineJSON = extract.computePdalPipeline(eptFilename, algo.polygon, newFile, algo.x1, algo.x2, algo.y1, algo.y2);
 
   // spawn child process
   const child = extract.spawnPdal(next, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
@@ -145,15 +156,15 @@ router.get('/', function(req, res, next) {
 
       if (returnUrl) {
 
-        storeFileAndReturnStoreURL(next, res, newFile, storedFileRead, storedFileWrite);
+        storeFileAndReturnStoreURL(next, res, newFile, algo.storedFileRead, algo.storedFileWrite);
       } else {
 
-        sendFileInTheResponse(res, newFile, filename);
+        sendFileInTheResponse(res, newFile, algo.filename);
       }
     }
   });
 
-});
+}
 
 function storeFileAndReturnStoreURL(next, res, newFile, storedFileRead, storedFileWrite) {
 
