@@ -3,7 +3,13 @@ point-server is a server use to extract pointcloud data.
 
 ## to do
 
-- Tests
+- Config with anv var:
+  - remove default value, verify config, and throw exception
+  - default behavior must be the most simple : send file in the response
+
+- Tests :
+  - return url S3 config
+  - basic return file config: test file received md5
 
 - Make this repo public
 
@@ -14,10 +20,10 @@ point-server is a server use to extract pointcloud data.
 - Upload the Las file on the S3 folder using a library https://www.npmjs.com/package/s3
     - Now it's with system call of aws cli.
 
-- Test file existence without system call of WGET
-
 - 12 factor app : https://12factor.net/fr/
   - Disposability : Verify graceful shutdown use.
+
+- Env var to avoid using date in store path to store on S3 storage. Can be useful if we have a bucket configured to delete automatically the file after a delay
 
 
 ## to do (bonus)

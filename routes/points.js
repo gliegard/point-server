@@ -1,6 +1,5 @@
 const extract = require('../services/extract');
 var express = require('express');
-const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
