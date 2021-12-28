@@ -3,12 +3,7 @@ point-server is a server use to extract pointcloud data.
 
 ## to do
 
-- Make async code
-  - use callbacks (instead of every execSync)
-    - verify error handling ;)
-
-- Tests :
-  - test existing code with unit tests, at least functionnal tests for errors
+- Tests
 
 - Make this repo public
 
