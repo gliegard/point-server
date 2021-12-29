@@ -43,6 +43,14 @@ describe('API /points with bad polygon made of 2 points', () => {
 });
 
 describe('API /points surface reach limit', () => {
+
+  before(function() {
+    if (process.env.SURFACE_MAX && (process.env.SURFACE_MAX < 109000 || process.env.SURFACE_MAX ==0)) {
+        console.log('Skipping suface limit tests, regarding SURFACE_MAX. actual is: ' + process.env.SURFACE_MAX + ' and should be undefined or > 0 and < 109 000')
+        this.skip();
+    }
+  })
+
   it('it should return 400', (done) => {
     chai.request(app)
       .get('/points?poly=277325.41_6735421.07,277325.41_6735421.07,277528.66_6735409.07,277515.99_6734905.15,277314.67_6734918.59')

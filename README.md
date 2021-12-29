@@ -9,7 +9,6 @@ point-server is a server use to extract pointcloud data.
 
 - Tests :
   - return url S3 config
-  - basic return file config: test file received md5
 
 - Make this repo public
 
