@@ -128,7 +128,7 @@ function computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2) {
     const child = spawn('pdal', args);
 
     child.stderr.on('data', (data) => {
-      next(new Error(data));
+      next(new Error('PDAL error: ' + data));
     });
 
     child.on('error', (err) => {
@@ -164,7 +164,7 @@ function spawnS3cmdPut(next, newFile, storedFileWrite) {
   const child = spawn('s3cmd', args);
 
   child.stderr.on('data', (data) => {
-    next(new Error(data));
+    next(new Error('S3CMD error: ' + data));
   });
 
   child.on('error', (err) => {

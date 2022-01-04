@@ -3,18 +3,17 @@ point-server is a server use to extract pointcloud data.
 
 ## to do
 
-- Config with anv var:
-  - remove default value, verify config, and throw exception
-  - default behavior must be the most simple : send file in the response
-
-- Tests :
-  - return url S3 config
-
 - Make this repo public
 
 - continuous deployment
   - Create a Docker file
   - Create another git project to make deployment
+
+- Think about serving multiple EPT
+
+- Config with anv var:
+  - remove default value, verify config, and throw exception
+  - default behavior must be the most simple : send file in the response
 
 - Upload the Las file on the S3 folder using a library https://www.npmjs.com/package/s3
     - Now it's with system call of aws cli.
