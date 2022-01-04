@@ -1,15 +1,23 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const app = require('../app');
 const should = chai.should();
 chai.use(chaiHttp);
-
-// const fs = require('fs');
+const env = require('./env')
+var app;
 
 
 describe('API /points with env local', () => {
 
+
     before(function() {
+
+        // force config force test coverage
+        if (process.env.MAX_COVERAGE) {
+            env.overrideEnv('env/local');
+        }
+        app = require('../app');
+
+        // verify config
         if (process.env.EPT_JSON != '/media/data/EPT_SUD_Vannes/EPT_4978/ept.json') {
             console.log('Skipping somes tests, regarding EPT_JSON. actual is: ' + process.env.EPT_JSON + ' and should be /media/data...')
             this.skip();
@@ -52,7 +60,7 @@ describe('API /points with env local', () => {
                     done();
 
                     // to verifie the expected size, download it, verifiy it, and print the size
-                    // const size = fs.statSync('lidar_x_271113_y_6734674.las').size.toString();
+                    // const size = require('fs').statSync('lidar_x_271113_y_6734674.las').size.toString();
                     // console.log('expected size regarding file size on disk: ' + size);
                 });
 

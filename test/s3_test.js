@@ -1,13 +1,21 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const app = require('../app');
 const should = chai.should();
 chai.use(chaiHttp);
-
+const env = require('./env')
+var app;
 
 describe('API /points with, but it returns an URL of an S3 store', () => {
 
     before(function() {
+
+        // force config for test coverage
+        if (process.env.MAX_COVERAGE) {
+            env.overrideEnv('env/testS3');
+        }
+        app = require('../app');
+
+        // verfiy compatible config
         if (!process.env.EPT_JSON || !process.env.EPT_JSON.includes('ept://http://lidarhd')) {
             console.log('Skipping somes tests, regarding env var EPT_JSON. actual is: ' + process.env.EPT_JSON + ' and should be ept://http://lidarhd...')
             this.skip();

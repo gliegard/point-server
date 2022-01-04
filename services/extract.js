@@ -175,29 +175,13 @@ function spawnS3cmdPut(next, newFile, storedFileWrite) {
   return child;
 }
 
-function spawnWget(next, storedFileRead) {
-
-  const child = spawn('wget', ['--spider', storedFileRead]);
-
-  child.stderr.on('data', (data) => {
-    next(new Error(data));
-  });
-
-  child.on('error', (err) => {
-    info('Failed to start Wget subprocess.' + err.message);
-    next(new Error(err));
-  });
-
-  return child;
+module.exports = {
+  init,
+  computeBoundingBox,
+  computeArea,
+  computeHash,
+  computeTodayDateFormatted,
+  computePdalPipeline,
+  spawnPdal,
+  spawnS3cmdPut,
 }
-
-  module.exports = {
-    init,
-    computeBoundingBox,
-    computeArea,
-    computeHash,
-    computeTodayDateFormatted,
-    computePdalPipeline,
-    spawnPdal,
-    spawnS3cmdPut,
-  }

@@ -33,7 +33,7 @@ curl http://localhost:3000/points?poly=277325.41_6735421.07,277325.41_6735421.07
 # bad request (limit) : test 250 000m² (500m * 500) (130 sec)
 curl http://localhost:3000/points?poly=276347.84_6735102.06,276347.84_6735102.06,276847.11_6735106.73,276835.63_6734604.85,276334.31_6734594.83 
 
-# ok
+# ok (same as invalid ring, but valid)
 time curl http://localhost:3000/points?poly=271113_6734674,271113_6734717,271161_6734717,271161_6734674,271113_6734674
 if [ -f "output.las" ];then
 	ls -lah output.las

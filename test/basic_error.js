@@ -1,8 +1,8 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const app = require('../app');
 const should = chai.should();
 chai.use(chaiHttp);
+const app = require('../app');
 
 describe('API /health', () => {
   it('it should return 200', (done) => {
@@ -45,7 +45,8 @@ describe('API /points with bad polygon made of 2 points', () => {
 describe('API /points surface reach limit', () => {
 
   before(function() {
-    if (process.env.SURFACE_MAX && (process.env.SURFACE_MAX < 109000 || process.env.SURFACE_MAX ==0)) {
+
+    if (process.env.SURFACE_MAX && (process.env.SURFACE_MAX > 109000 || process.env.SURFACE_MAX == 0)) {
         console.log('Skipping suface limit tests, regarding SURFACE_MAX. actual is: ' + process.env.SURFACE_MAX + ' and should be undefined or > 0 and < 109 000')
         this.skip();
     }
