@@ -1,2 +1,2 @@
-export DEBUG_COLORS=true 
-export DEBUG=point*
+DEBUG_COLORS=true
+DEBUG=point*

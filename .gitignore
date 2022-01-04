@@ -1,6 +1,8 @@
 output.las
 pipeline.json
 test2.las
+test3.las
+testS3_PivotTHREE.json
 
 # Logs
 logs
