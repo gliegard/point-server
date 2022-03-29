@@ -1,0 +1,29 @@
+# 16.13.1 is nodejs LTS version, and bullseye is the code for debian 11, the last LTS debian 
+FROM node:16.13.1-bullseye
+
+ENV http_proxy ${http_proxy}
+ENV https_proxy ${http_proxy}
+
+ENV TZ=Europe/Moscow
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -y && apt-get install --no-install-recommends -y \
+s3cmd pdal \
+&& apt-get -y autoclean
+
+# update npm
+RUN npm config set http-proxy $http_proxy
+RUN npm config set https-proxy $http_proxy
+RUN npm install -g npm
+
+RUN git config --global http.proxy $http_proxy
+RUN git clone https://github.com/gliegard/point-server.git
+
+WORKDIR /point-server
+
+RUN mkdir tmp
+RUN npm install
+
+EXPOSE 3000
+
+CMD [ "npm", "run", "dev" ]

@@ -2,7 +2,14 @@ output.las
 pipeline.json
 test2.las
 test3.las
+test3_pont.las
 testS3_PivotTHREE.json
+testS3_Nimes_pivotTHREE.json
+
+tmp
+
+# IDE
+.idea
 
 # Logs
 logs
