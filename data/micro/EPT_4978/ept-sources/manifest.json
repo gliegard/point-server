@@ -1,0 +1,16 @@
+[
+  {
+    "bounds": [
+      -27.203855893108994,
+      -31.629341997002484,
+      -0.520014381967485,
+      26.950069583021104,
+      31.673816245020134,
+      14.769986088387668
+    ],
+    "inserted": true,
+    "metadataPath": "eau_surplomb.json",
+    "path": "/home/GLiegard/workspace/PointsTools/test_micro/output/4978/eau_surplomb.laz",
+    "points": 17385
+  }
+]

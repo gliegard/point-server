@@ -1,0 +1,24 @@
+{
+  "pipeline": [
+    {
+      "type": "readers.las",
+      "spatialreference": "EPSG:2154"
+    },
+    {
+      "type": "filters.colorization",
+      "raster": "/home/GLiegard/workspace/PointsTools/src/wms.xml"
+    },
+    {
+      "type": "filters.reprojection",
+      "in_srs": "EPSG:2154",
+      "out_srs": "EPSG:4978"
+    },
+    {
+      "type": "filters.transformation",
+      "matrix": "0.6905216772318287 -0.022384543591657695 -0.7229652450022307 -21299.5505746766 -0.022384543591657695 0.9983809276613466 -0.05229202128683083 -1540.5948761028121 0.7229652450022307 0.05229202128683083 0.6889026048931752 -6367997.063877472 0 0 0 1"
+    },
+    {
+      "type": "writers.las"
+    }
+  ]
+}

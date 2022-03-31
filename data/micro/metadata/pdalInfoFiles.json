@@ -1,0 +1,23 @@
+[
+{
+  "file_size": 141239,
+  "filename": "/home/GLiegard/workspace/PointsTools/test_micro/input/eau_surplomb.laz",
+  "now": "2022-02-28T11:29:14+0100",
+  "pdal_version": "2.3.0 (git-version: af0238)",
+  "reader": "readers.las",
+  "summary":
+  {
+    "bounds":
+    {
+      "maxx": 791954,
+      "maxy": 6272271.39,
+      "maxz": 14.77,
+      "minx": 791889.3,
+      "miny": 6272215,
+      "minz": -0.52
+    },
+    "dimensions": "X, Y, Z, Intensity, ReturnNumber, NumberOfReturns, ScanDirectionFlag, EdgeOfFlightLine, Classification, ScanAngleRank, UserData, PointSourceId, GpsTime, Red, Green, Blue",
+    "num_points": 17385
+  }
+}
+]
