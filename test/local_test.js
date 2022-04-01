@@ -2,28 +2,31 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const should = chai.should();
 chai.use(chaiHttp);
-const env = require('./env')
-var app;
+const app = require('../app');
 
+const config = require('../services/config.js')
+var conf;
 
 describe('API /points with env local', () => {
 
 
     before(function() {
-
-        // force config force test coverage
-        if (process.env.MAX_COVERAGE) {
-            env.overrideEnv('env/local');
+        if (process.env.TEST_MULTI_SOURCE) {
+            SOURCE="&source=micro";
+            conf = config.getConfig("micro")
+        } else {
+            conf = config.getFirst();
         }
-        app = require('../app');
-
-        // verify config
-        if (process.env.EPT_JSON != '/media/data/EPT_SUD_Vannes/EPT_4978/ept.json') {
+        if (conf == undefined) {
+            console.log('Skipping because there is no config')
+            this.skip();
+        }
+        if (!conf.EPT_JSON.includes('micro')) {
             console.log('Skipping somes tests, regarding EPT_JSON. actual is: ' + process.env.EPT_JSON + ' and should be /media/data...')
             this.skip();
         }
-        if (!process.env.RETURN_URL || process.env.RETURN_URL == 'true') {
-            console.log('Skipping somes tests, regarding RETURN_URL. actual is: ' + process.env.RETURN_URL + ' and should be false')
+        if (conf.RETURN_URL) {
+            console.log('Skipping somes tests, regarding RETURN_URL. actual is: ' + conf.RETURN_URL + ' and should be false')
             this.skip();
         }
     });
@@ -31,8 +34,8 @@ describe('API /points with env local', () => {
     describe('Test that extract a pointcloud !', () => {
         
         before(function() {
-            if (process.env.SURFACE_MAX > 0 && process.env.SURFACE_MAX < 3000) {
-                console.log('Skipping the test, regarding SURFACE_MAX. actual is: ' + process.env.SURFACE_MAX + ' and should be undefined of >= 3000')
+            if (conf.SURFACE_MAX > 0 && conf.SURFACE_MAX < 3000) {
+                console.log('Skipping the test, regarding SURFACE_MAX. actual is: ' + conf.SURFACE_MAX + ' and should be undefined of >= 3000')
                 this.skip();
             }
         })
@@ -40,7 +43,7 @@ describe('API /points with env local', () => {
         it('it should return 200, and download the file', (done) => {
             let data = '';
             chai.request(app)
-                .get('/points?poly=271113_6734674,271113_6734717,271161_6734717,271161_6734674')
+                .get('/points?poly=791940.71_6272225.14,791941.60_6272227.37,791935.63_6272228.62,791935.72_6272225.76')
                 .buffer()
                 .parse((res, callback) => {
                     res.setEncoding('binary');
@@ -53,9 +56,11 @@ describe('API /points with env local', () => {
                 })
                 .end((err, res) => {
                     should.equal(err, null);
+                    // if you want to debug, comment the lines before (buffer and parse methods)
+                    console.log('res.text : ' + res.text);
                     res.should.have.status(200);
-                    res.header['content-length'].should.be.equal('1204195');
-                    res.body.length.should.be.equal(1204195);
+                    res.header['content-length'].should.be.equal('10903');
+                    res.body.length.should.be.equal(10903);
                     console.log('body length: ' + res.body.length)
                     done();
 
@@ -64,11 +69,11 @@ describe('API /points with env local', () => {
                     // console.log('expected size regarding file size on disk: ' + size);
                 });
 
-        });
+        })
 
     });
 
-
+/*
     describe('!! PERFORMANCE TEST !! can be very long, test PDAL point extraction, regarding big area', () => {
 
         before(function() {
@@ -94,5 +99,5 @@ describe('API /points with env local', () => {
         it('it should return 200: test perf 3: test 100 000m² (200m * 500) (132 sec)', done => { test_perf(done, 200, '/points?poly=277325.41_6735421.07,277325.41_6735421.07,277528.66_6735409.07,277515.99_6734905.15,277314.67_6734918.5')}).timeout(10000);;
         it('it should return 200: test perf 4: test 250 000m² (500m * 500) (130 sec)', done => { test_perf(done, 200, '/points?poly=276347.84_6735102.06,276347.84_6735102.06,276847.11_6735106.73,276835.63_6734604.85,276334.31_6734594.83')}).timeout(60000);;
     });
-
+*/
 });

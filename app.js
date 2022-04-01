@@ -4,9 +4,14 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
+var config = require('./services/config.js')
+config.init();
+
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var pointsRouter = require('./routes/points');
+
+
 
 var debug = require('debug')('point-server:app');
 

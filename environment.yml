@@ -2,7 +2,4 @@ name: point-server
 channels:
   - conda-forge
 dependencies:
-  - python=3.8
-  - entwine
-  - python-pdal
-  
+  - pdal=2.3

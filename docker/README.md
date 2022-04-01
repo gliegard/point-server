@@ -7,7 +7,6 @@ Le fichier Dockerfile et ./build.sh
 - part d'une Debain
 - utilise nvm pour obtenir la version LTS de node
 - produit une image de 700 Mo
-- BUG: depuis Node v16.14.0 j'ai une erreur: 'fs.rm is not a function' lors de la suppression de dossier.
 
 
 Le fichier Dockerfile2 et ./build2.sh
