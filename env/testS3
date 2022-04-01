@@ -1,6 +1,0 @@
-EPT_JSON=ept://http://lidarhd.pocgpf.ovh/data/ept/ept.json
-PIVOT_THREEJS=./testS3_PivotTHREE.json
-SURFACE_MAX=100000
-RETURN_URL=true
-STORE_READ_URL=http://lidarhd.pocgpf.ovh/tmp
-STORE_WRITE_URL=s3://lidarhd/tmp
