@@ -1,52 +1,27 @@
 const extract = require('../services/extract');
-var express = require('express');
+const config = require('../services/config');
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
-
+const urlExists = require('url-exists');
 const { v4: uuidv4 } = require('uuid');
-
-var urlExists = require('url-exists');
-
-var router = express.Router();
+const request = require('request');
+const router = express.Router();
 
 // debug stuff
-var debugModule = require('debug');
-var info = debugModule('points:info');
-var debug = debugModule('points:debug')
+const debugModule = require('debug');
+const info = debugModule('points:info');
+const debug = debugModule('points:debug')
 // debug module basicaly use std error output, we'll use std out
 debug.log = console.log.bind(console);
 info.log = console.log.bind(console);
 
-const eptFilename = process.env.EPT_JSON || '/media/data/EPT_SUD_Vannes/EPT_4978/ept.json';
-const pivotFile = process.env.PIVOT_THREEJS  || '/media/data/EPT_SUD_Vannes/metadata/pivotTHREE.json';
-
-// RETURN_URL env var: true: avoid using the response to send the file; upload the file to the store, and redirect the request.
-// RETURN_URL env var: false:  in dev mode, if you don't have S3 file store.
-const returnUrlString = process.env.RETURN_URL || 'true';
-const returnUrl = returnUrlString === 'true';
-
-// WRITE_PDAL_PIPELINE_FILE env var: true: Write the PDAL pipeline file on the disk, to debug, make code sync (bad thing)
-// WRITE_PDAL_PIPELINE_FILE env var: false: Default behavior
-const writePdalPipelineFileString = process.env.WRITE_PDAL_PIPELINE_FILE || 'false';
-const writePdalPipelineFile = writePdalPipelineFileString === 'true';
-
-const storeWriteUrl = process.env.STORE_WRITE_URL;
-const storeReadUrl = process.env.STORE_READ_URL;
-
+// can be used to debug PDAL projections
+const writePdalPipelineFile = false;
 const tmpFolder = './tmp';
 
-function init() {
-  extract.init(pivotFile);
-}
-
-init();
-
-// 0 means no limit
-// const area_limit_in_square_meter = 0;
-const area_limit_in_square_meter = process.env.SURFACE_MAX  || 100000;
-
-function removeFileASync(file) {
-  fs.rm(file, { recursive:true }, (err) => {
+function removeFile(file) {
+  fs.unlink(file, (err) => {
     if(err){
       info(err.message);
     }
@@ -59,7 +34,28 @@ router.get('/', function(req, res, next) {
   let p = req.params;
 
   let polygon = req.query.poly;
+  let source = req.query.source;
 
+  let conf;
+  if (source) {
+    // source param, to load specific config
+     conf = config.getConfig(source);
+  } else { // if no source param, we use the fist config
+    conf = config.getFirst();
+  }
+
+  // handle config error
+  if (conf == undefined) {
+    var msg = "Bad config: there is not any config";
+    if (source) {
+      msg = 'Bad config for source ' + source;
+    }
+    info(msg);
+    res.status(400).send(msg + '\n');
+    return;
+  }
+
+  // handle polygon errors
   if (!polygon) {
     info("Bad Request: You must specify a polygon to crops")
     res.status(400).send('Bad Request: You must specify a polygon to crop\n');
@@ -80,7 +76,7 @@ router.get('/', function(req, res, next) {
   }
 
   // object to store many variables
-  const algo = {};
+  const algo = { conf };
   algo.polygon = polygon;
   // compute bounding box
   [algo.x1, algo.x2, algo.y1, algo.y2] = extract.computeBoundingBox(polygon_points);
@@ -90,6 +86,9 @@ router.get('/', function(req, res, next) {
   const area = extract.computeArea(algo.x1, algo.x2, algo.y1, algo.y2);
 
   // limit on area
+  // 0 means no limit
+  // const area_limit_in_square_meter = 0;
+  const area_limit_in_square_meter = conf.SURFACE_MAX  || 100000;
   if (area_limit_in_square_meter > 0 && area > area_limit_in_square_meter) {
     const msg = 'Bad Request: Area is to big ('+ area + 'm²) ; limit is set to ' + area_limit_in_square_meter + 'm²)';
     info(msg);
@@ -103,10 +102,12 @@ router.get('/', function(req, res, next) {
 
 	// create file names and url
   algo.filename = 'lidar_x_' + Math.floor(algo.x1) + '_y_' + Math.floor(algo.y1) + '.las';
-  algo.storedFileRead = storeReadUrl + '/' + date + '/' + hash + '/' + algo.filename;
-  algo.storedFileWrite = storeWriteUrl + '/' + date + '/' + hash + '/' + algo.filename;
+  algo.storedFileRead = conf.STORE_READ_URL + '/' + date + '/' + hash + '/' + algo.filename;
+  algo.storedFileWrite = conf.STORE_WRITE_URL + '/' + date + '/' + hash + '/' + algo.filename;
 
-  if (returnUrl) {
+  // RETURN_URL : true: avoid using the response to send the file; upload the file to the store, and redirect the request.
+  // RETURN_URL env var: false:  in dev mode, if you don't have S3 file store.
+  if (conf.RETURN_URL) {
 
     // test url existence
     urlExists(algo.storedFileRead, function(err, exists) {
@@ -133,6 +134,36 @@ router.get('/', function(req, res, next) {
 });
 
 function extractPointCloud(next, res, algo) {
+  const pivot = algo.conf.PIVOT_THREEJS;
+  readFileOrUrl(pivot, err => { next(err)}, function(pivot) {
+    algo.conf.pivot = pivot;
+
+    extractPointCloud2(next, res, algo);
+  });
+}
+
+function readFileOrUrl(url, err, callback) {
+  if (url.startsWith('http')) {
+    request.get(url, function (error, response, body) {
+      if (!error && response.statusCode == 200) {
+          var data = body;
+          callback(data);
+      }else {
+        err(error);
+      }
+    });
+  } else {
+    fs.readFile(url, 'utf8', function(error, data){
+      if (!error) {
+        callback(data);
+      } else {
+        err(error);
+      }
+    });
+  }
+}
+
+function extractPointCloud2(next, res, algo) {
 
   // use uniqe id
   const unique_id = uuidv4();
@@ -141,7 +172,7 @@ function extractPointCloud(next, res, algo) {
   
   // compute pdal pipeline file
   const pdalPipelineFilename = tmpFolder + '/' + unique_id + '-pipeline.json';
-  const pdalPipelineJSON = extract.computePdalPipeline(eptFilename, algo.polygon, newFile, algo.x1, algo.x2, algo.y1, algo.y2);
+  const pdalPipelineJSON = extract.computePdalPipeline(algo.conf, algo.polygon, newFile, algo.x1, algo.x2, algo.y1, algo.y2);
 
   // spawn child process
   const child = extract.spawnPdal(next, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
@@ -152,7 +183,7 @@ function extractPointCloud(next, res, algo) {
 
     if (code == 0) {
 
-      if (returnUrl) {
+      if (algo.conf.RETURN_URL) {
 
         storeFileAndReturnURL(next, res, newFile, algo.storedFileRead, algo.storedFileWrite);
       } else {
@@ -170,7 +201,7 @@ function storeFileAndReturnURL(next, res, newFile, storedFileRead, storedFileWri
 
   child.on('close', (code) => {
 
-    removeFileASync(newFile);
+    removeFile(newFile);
 
     debug('done');
     if (code == 0) {
@@ -194,7 +225,7 @@ function sendFileInTheResponse(res, newFile, filename) {
       info(err.message);
     }
 
-    removeFileASync(newFile);
+    removeFile(newFile);
   });
 }
 

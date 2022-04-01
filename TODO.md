@@ -1,16 +1,27 @@
-- Serve multiple EPT
+- Config file with Docker
+  - Make the tests work
 
-- Config with anv var:
-  - remove default value, verify config, and throw exception
-  - default behavior must be the most simple : send file in the response
+- Verif config :
+  - Loading config : Check undefined value for needed config
+
+- Config test file for
+  - ept file not found
+  - pivot file not found
+  - bad store read url
+  - bad store write url
+
+- Health
+  - show PDAL version
+  - show S3CMD version
+  - Check config file existence
 
 - Upload the Las file on the S3 folder using a library https://www.npmjs.com/package/s3
-    - Now it's with system call of aws cli.
+    - Now it's S3CMD sub process
 
 - 12 factor app : https://12factor.net/fr/
   - Disposability : Verify graceful shutdown use.
 
-- Env var to avoid using date in store path to store on S3 storage. Can be useful if we have a bucket configured to delete automatically the file after a delay
+- S3 : Actual behavior stores the date in a directory on the s3 store (s3store/date/uid/file). Make this behavior optional. Can be useful if we have a bucket configured to delete automatically the file after a delay
 
 - EPSG input/out parameter. Now it's lamb93 hard coded
   - for the request

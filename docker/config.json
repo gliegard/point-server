@@ -1,0 +1,16 @@
+{
+    "micro": {
+        "EPT_JSON": "./data/micro/EPT_4978/ept.json",
+        "PIVOT_THREEJS": "./data/micro/metadata/pivotTHREE.json",
+        "SURFACE_MAX": "50000",
+        "RETURN_URL": false
+    },
+    "Nimes": {
+        "EPT_JSON": "ept://http://lidarhd.pocgpf.ovh/data_test/lot7/blocs/NP/EPT_4978/ept.json",
+        "PIVOT_THREEJS": "http://lidarhd.pocgpf.ovh/data_test/lot7/blocs/NP/metadata/pivotTHREE.json",
+        "SURFACE_MAX": 100000,
+        "RETURN_URL": true,
+        "STORE_READ_URL": "http://lidarhd.pocgpf.ovh/tmp",
+        "STORE_WRITE_URL": "s3://lidarhd/tmp"
+    }
+}

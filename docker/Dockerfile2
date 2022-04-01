@@ -17,7 +17,7 @@ RUN npm config set https-proxy $http_proxy
 RUN npm install -g npm
 
 RUN git config --global http.proxy $http_proxy
-RUN git clone https://github.com/gliegard/point-server.git
+RUN git clone https://github.com/gliegard/point-server.git -b multiple_source
 
 WORKDIR /point-server
 

@@ -20,31 +20,24 @@ const proj4 = require('proj4');
 proj4.defs('EPSG:4978', '+proj=geocent +datum=WGS84 +units=m +no_defs');
 proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
 
-// THREE JS matrix used as pivot
-var mat;
-var matrixTransformation;
+// read conf.pivot
+// write conf.mat
+// write conf.matrixTransformation
+function initMatrix(conf) {
+  if (conf.mat) {
+    // debug('matrix already loaded, nothing to do');
+    return;
+  }
 
-function init(pivotFile) {
-  fs.readFile(pivotFile, 'utf8' , (err, data) => {
-    if (err) {
-      console.error(err);
-      return
-    }
-
-    initMatrix(data);
-    debug('martix loaded');
-  })
-}
-
-function initMatrix(pivotJson) {
-  const pivot = JSON.parse(pivotJson);
-
+  // write conf.mat
+  const pivot = JSON.parse(conf.pivot);
   const array = pivot["object"]["matrix"];
-  mat = new THREE.Matrix4().fromArray(array);
+  conf.mat = new THREE.Matrix4().fromArray(array);
 
-  // create matrix for pdal pipeline
-  matrixTransformation = mat.clone().transpose().toArray().toString().replace(/,/g, ' ');
-  mat.invert();
+  // create matrixTransformation for pdal pipeline
+  conf.matrixTransformation = conf.mat.clone().transpose().toArray().toString().replace(/,/g, ' ');
+  conf.mat.invert();
+  debug('martix loaded');
 }
 
 
@@ -95,14 +88,15 @@ function computeTodayDateFormatted() {
 }
   
 
-function computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2) {
+function computePdalPipeline(conf, polygon, outFile, x1, x2, y1, y2) {
     let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
     let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
     // debug(c1);
     // debug(c2);
 
-    c1.applyMatrix4(mat);
-    c2.applyMatrix4(mat);
+    initMatrix(conf);
+    c1.applyMatrix4(conf.mat);
+    c2.applyMatrix4(conf.mat);
   
     // create bounds in for pdal pipeline
     const bounds = '([' + Math.min(c1.x, c2.x) + ', ' + Math.max(c1.x, c2.x) + '], ['
@@ -111,7 +105,8 @@ function computePdalPipeline(eptFilename, polygon, outFile, x1, x2, y1, y2) {
     // debug(bounds);
   
     // create pdal pipeline in Json
-    const pdalPipeline = template({eptFilename, bounds, matrixTransformation, polygon, outFile });
+    const template2 = parse(jsonPdalTemplate);
+    const pdalPipeline = template2({eptFilename: conf.EPT_JSON, bounds, matrixTransformation: conf.matrixTransformation, polygon, outFile });
     return JSON.stringify(pdalPipeline, null, 2)
   }
 
@@ -176,7 +171,6 @@ function spawnS3cmdPut(next, newFile, storedFileWrite) {
 }
 
 module.exports = {
-  init,
   computeBoundingBox,
   computeArea,
   computeHash,

@@ -24,7 +24,7 @@ RUN source $NVM_DIR/nvm.sh \
     && nvm install --lts
 
 RUN git config --global http.proxy $http_proxy
-RUN git clone https://github.com/gliegard/point-server.git
+RUN git clone https://github.com/gliegard/point-server.git -b multiple_source
 
 WORKDIR /point-server
 
