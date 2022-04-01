@@ -37,7 +37,7 @@ function initMatrix(conf) {
   // create matrixTransformation for pdal pipeline
   conf.matrixTransformation = conf.mat.clone().transpose().toArray().toString().replace(/,/g, ' ');
   conf.mat.invert();
-  debug('martix loaded');
+  debug('matrix loaded');
 }
 
 

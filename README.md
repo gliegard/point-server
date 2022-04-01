@@ -25,6 +25,15 @@ npm start
 ```
 
 
+### test
+
+En local, configuration simple :
+
+```
+./script/unit_test1.sh
+```
+
+
 ### run inside screen (terminal multiplexer)
 
 Start new screen session

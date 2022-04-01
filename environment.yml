@@ -3,5 +3,3 @@ channels:
   - conda-forge
 dependencies:
   - pdal=2.3
-  - s3cmd
-  
