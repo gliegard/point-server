@@ -12,6 +12,7 @@ const router = express.Router();
 const debugModule = require('debug');
 const info = debugModule('points:info');
 const debug = debugModule('points:debug')
+const logError = debugModule('points:error')
 // debug module basicaly use std error output, we'll use std out
 debug.log = console.log.bind(console);
 info.log = console.log.bind(console);
@@ -135,11 +136,16 @@ router.get('/', function(req, res, next) {
 
 function extractPointCloud(next, res, algo) {
   const pivot = algo.conf.PIVOT_THREEJS;
-  readFileOrUrl(pivot, err => { next(err)}, function(pivot) {
-    algo.conf.pivot = pivot;
-
+  if (!algo.conf.pivot) {
+    debug("request pivot " + algo.conf.PIVOT_THREEJS);
+    readFileOrUrl(pivot, err => { next(err)}, function(pivot) {
+      algo.conf.pivot = pivot;
+      extractPointCloud2(next, res, algo);
+    });
+  } else {
+    debug("re use pivot " + algo.conf.PIVOT_THREEJS);
     extractPointCloud2(next, res, algo);
-  });
+  }
 }
 
 function readFileOrUrl(url, err, callback) {
@@ -149,7 +155,10 @@ function readFileOrUrl(url, err, callback) {
           var data = body;
           callback(data);
       }else {
-        err(error);
+
+        msg = "Cant request url " + url;
+        logError(msg)
+        err(new Error(msg));
       }
     });
   } else {
@@ -157,7 +166,10 @@ function readFileOrUrl(url, err, callback) {
       if (!error) {
         callback(data);
       } else {
-        err(error);
+
+        msg = "Cant read file " + url;
+        logError(msg)
+        err(new Error(msg));
       }
     });
   }
