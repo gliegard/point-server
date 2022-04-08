@@ -6,7 +6,7 @@
 
 var app = require('../app');
 var debug = require('debug')('point-server:server');
-var http = require('http');
+var fs = require('fs');
 
 /**
  * Get port from environment and store in Express.
@@ -16,10 +16,24 @@ var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
 /**
- * Create HTTP server.
+ * Create HTTP(S) server.
  */
 
-var server = http.createServer(app);
+var server
+if (process.env.SSL === 'true') {
+  // SSL enabled: create HTTPS server
+  var https = require('https');
+  server = https.createServer({
+    key: readRequiredFile(process.env.SSL_KEY || 'ssl/private.key.pem'),
+    cert: readRequiredFile(process.env.SSL_CERT || 'ssl/domain.cert.pem')
+  }, app);
+  debug('Created HTTPS server');
+} else {
+  // SSL disabled: create HTTP server
+  var http = require('http');
+  server = http.createServer(app);
+  debug('Created HTTP server');
+}
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -47,6 +61,22 @@ function normalizePort(val) {
   }
 
   return false;
+}
+
+/**
+ * Read the content of a file or exit on failure
+ */
+
+function readRequiredFile(filename) {
+  try {
+    return fs.readFileSync(filename);
+  } catch (err) {
+    if (err.code === 'ENOENT')
+      console.error('Missing required file: ' + filename);
+    else
+      console.error('Failed to read file: ' + filename + '\n' + err.message);
+    process.exit(1);
+  }
 }
 
 /**
