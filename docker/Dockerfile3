@@ -1,0 +1,96 @@
+# Buster (Debian 10 codename) is used to match production server
+FROM debian:buster
+
+# Build arguments
+ARG make_jobs=1
+
+# Environment variables
+ENV http_proxy=$http_proxy
+ENV https_proxy=$http_proxy
+
+ENV TZ=Europe/Moscow
+ENV DEBIAN_FRONTEND=noninteractive
+
+# APT packages
+RUN apt update -y && apt upgrade -y && \
+    apt install -y \
+        cmake \
+        curl \
+        g++ \
+        gcc \
+        libcurl4-openssl-dev \
+        libgeotiff-dev \
+        libsqlite3-dev \
+        libtiff5-dev \
+        libxml2-dev \
+        make \
+        pkg-config \
+        python-setuptools \
+        sqlite3 \
+        wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Proj
+RUN wget -q https://download.osgeo.org/proj/proj-7.2.0.tar.gz && \
+    tar xzf proj-7.2.0.tar.gz && rm proj-7.2.0.tar.gz && \
+    cd proj-7.2.0/ && \
+    ./configure --without-curl && \
+    make -j$make_jobs && make -j$make_jobs install && ldconfig && \
+    cd .. && rm -rf proj-7.2.0/
+
+# GEOS
+RUN wget -q https://download.osgeo.org/geos/geos-3.10.2.tar.bz2 && \
+    tar xjf geos-3.10.2.tar.bz2 && rm geos-3.10.2.tar.bz2 && \
+    cd geos-3.10.2/ && \
+    ./configure && \
+    make -j$make_jobs && make -j$make_jobs install && ldconfig && \
+    cd .. && rm -rf geos-3.10.2/
+
+# GDAL
+RUN wget -q https://github.com/OSGeo/gdal/releases/download/v3.4.2/gdal-3.4.2.tar.gz && \
+    tar xzf gdal-3.4.2.tar.gz && rm gdal-3.4.2.tar.gz && \
+    cd gdal-3.4.2/ && \
+    ./configure --with-geos=yes && \
+    make -j$make_jobs && make -j$make_jobs install && ldconfig && \
+    cd .. && rm -rf gdal-3.4.2/
+
+# LASzip
+RUN wget -q https://github.com/LASzip/LASzip/releases/download/3.4.3/laszip-src-3.4.3.tar.gz && \
+    tar xzf laszip-src-3.4.3.tar.gz && rm laszip-src-3.4.3.tar.gz && \
+    cd laszip-src-3.4.3/ && \
+    mkdir build && cd build/ && \
+    cmake -j$make_jobs .. && \
+    make -j$make_jobs && make -j$make_jobs install && ldconfig && \
+    cd ../.. && rm -rf laszip-src-3.4.3/
+
+# PDAL
+RUN wget -q https://github.com/PDAL/PDAL/releases/download/2.3.0/PDAL-2.3.0-src.tar.gz && \
+    tar xzf PDAL-2.3.0-src.tar.gz && rm PDAL-2.3.0-src.tar.gz && \
+    cd PDAL-2.3.0-src/ && \
+    mkdir build && cd build/ && \
+    cmake -j$make_jobs .. -DGDAL_INCLUDE_DIR=/usr/local/include -DGDAL_LIBRARY=/usr/local/lib/libgdal.so -DBUILD_PLUGIN_PGPOINTCLOUD=False && \
+    make -j$make_jobs && make -j$make_jobs install && ldconfig && \
+    cd ../.. && rm -rf PDAL-2.3.0-src/
+
+# NodeJS
+RUN wget -q -O- https://deb.nodesource.com/setup_16.x | bash - && \
+    apt install -y nodejs && \
+    npm config set http-proxy $http_proxy && npm config set https-proxy $http_proxy && \
+    npm install -g npm@latest
+
+# Point Server
+RUN wget -q https://github.com/gliegard/point-server/archive/refs/heads/main.tar.gz && \
+    tar xzf main.tar.gz && rm main.tar.gz && \
+    cd point-server-main/ && \
+    npm install && mkdir tmp/
+
+# S3cmd
+RUN wget -q https://github.com/s3tools/s3cmd/releases/download/v2.2.0/s3cmd-2.2.0.tar.gz && \
+    tar xzf s3cmd-2.2.0.tar.gz && rm s3cmd-2.2.0.tar.gz && \
+    cd s3cmd-2.2.0/ && \
+    python setup.py install
+
+# Runtime config
+WORKDIR point-server-main
+EXPOSE 3000
+CMD [ "npm", "start" ]
