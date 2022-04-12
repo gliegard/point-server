@@ -48,18 +48,21 @@ router.get('/', function(req, res, next) {
   // handle config error
   if (conf == undefined) {
     var msg = "Bad config: there is not any config";
+    var id = 'BAD_REQUEST_NO_CONFIG'
     if (source) {
       msg = 'Bad config for source ' + source;
+      id = 'BAD_REQUEST_NO_SOURCE'
     }
     info(msg);
-    res.status(400).send(msg + '\n');
+    res.status(400).json({id: id, error: msg});
     return;
   }
 
   // handle polygon errors
   if (!polygon) {
-    info("Bad Request: You must specify a polygon to crops")
-    res.status(400).send('Bad Request: You must specify a polygon to crop\n');
+    const msg = "Bad Request: You must specify a polygon to crops";
+    info(msg);
+    res.status(400).json({id: 'BAD_REQUEST_NO_POLYGON', error: msg});
     return;
   }
 
@@ -67,8 +70,9 @@ router.get('/', function(req, res, next) {
   polygon_points = polygon.split(',')
 
   if (polygon_points.length < 3) {
-    info("Bad Request: Polygon must have at least 3 points")
-    res.status(400).send("Bad Request: Polygon must have at least 3 points\n");
+    const msg = "Bad Request: Polygon must have at least 3 points";
+    info(msg);
+    res.status(400).json({id: 'BAD_REQUEST_BAD_POLYGON', error: msg});
     return;
   }
   // Manage Invalid ring. When First point is not equal to the last point.
@@ -93,7 +97,7 @@ router.get('/', function(req, res, next) {
   if (area_limit_in_square_meter > 0 && area > area_limit_in_square_meter) {
     const msg = 'Bad Request: Area is to big ('+ area + 'm²) ; limit is set to ' + area_limit_in_square_meter + 'm²)';
     info(msg);
-    res.status(400).send(msg + '\n');
+    res.status(400).json({id: 'BAD_REQUEST_AREA', error: msg});
     return;
   }
 

@@ -22,13 +22,14 @@ describe('API /point without any config', () => {
       }
     })
   
-    it('it should return 400', (done) => {
+    it('it should return 400 and a json body with id BAD_REQUEST_NO_CONFIG', (done) => {
       chai.request(app)
       .get('/points')
       .end((err, res) => {
         should.equal(err, null);
         res.should.have.status(400);
-        res.text.should.contain('Bad config: there is not any config');
+        res.should.be.json;
+        res.body.id.should.equal('BAD_REQUEST_NO_CONFIG');
         done();
       });
     });
@@ -36,13 +37,14 @@ describe('API /point without any config', () => {
 
 describe('API /point with bad source param', () => {
 
-  it('it should return 400', (done) => {
+  it('it should return 400 and a json body with id BAD_REQUEST_NO_SOURCE', (done) => {
     chai.request(app)
     .get('/points?source=Non_existing_source')
     .end((err, res) => {
       should.equal(err, null);
       res.should.have.status(400);
-      res.text.should.contain('Bad config for source Non_existing_source');
+      res.should.be.json;
+      res.body.id.should.equal('BAD_REQUEST_NO_SOURCE');
       done();
     });
   });
