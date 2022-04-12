@@ -3,23 +3,25 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var debug = require('debug')('point-server:app');
 
 var config = require('./services/config.js')
 config.init();
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 var pointsRouter = require('./routes/points');
-
-
-
-var debug = require('debug')('point-server:app');
 
 const version = process.env.npm_package_version;
 
 debug('start point server version ' + version);
 
 var app = express();
+
+// NODE_ENV env var undefined means 'development' ; used to render errors during dev.
+if (app.get('env') === 'development') {
+  debug('mode development');
+}
+
 app.use('/favicon.ico', express.static('public/images/favicon.ico'));
 
 // view engine setup
@@ -33,23 +35,19 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/points', pointsRouter);
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
-});
 
 // error handler
 app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  if (req.app.get('env') === 'development') {
+    res.locals.message = err.message;
+    res.locals.error = err;
+    console.log(err);
+    res.status(err.status || 500).render('error');
+  } else {
+    res.status(500).json({id:'SERVICE_UNAVAILABLE', error: 'Service Unavailable'});
+  }
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
 });
 
 module.exports = app;
