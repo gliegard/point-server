@@ -9,8 +9,10 @@ var conf;
 
 describe('API /points with env local', () => {
 
-
     before(function() {
+        if (process.env.COVERAGE) {
+            config.loadJson("./config/unit_test.json")
+        }
         if (process.env.TEST_MULTI_SOURCE) {
             SOURCE="&source=micro";
             conf = config.getConfig("micro")
@@ -22,7 +24,11 @@ describe('API /points with env local', () => {
             this.skip();
         }
         if (!conf.EPT_JSON.includes('micro')) {
-            console.log('Skipping somes tests, regarding EPT_JSON. actual is: ' + process.env.EPT_JSON + ' and should be /media/data...')
+            console.log('Skipping somes tests, regarding EPT_JSON. actual is: ' + conf.EPT_JSON + ' and should be ./data/micro/EPT_4978/ept.json.')
+            this.skip();
+        }
+        if (!conf.PIVOT_THREEJS.includes('micro')) {
+            console.log('Skipping somes tests, regarding PIVOT_THREEJS. actual is: ' + conf.PIVOT_THREEJS + ' and should be ./data/micro/metadata/pivotTHREE.json.')
             this.skip();
         }
         if (conf.RETURN_URL) {

@@ -1,0 +1,8 @@
+{
+    "bad_pivot": {
+        "EPT_JSON": "./data/micro/EPT_4978/ept.json",
+        "PIVOT_THREEJS": "./non_existing_pivot_file.json",
+        "SURFACE_MAX": "50000",
+        "RETURN_URL": false
+    }
+}

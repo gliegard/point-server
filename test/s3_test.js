@@ -13,6 +13,9 @@ describe('API /points with, but it returns an URL of an S3 store', () => {
     before(function() {
 
         // force config for test coverage
+        if (process.env.COVERAGE) {
+            config.loadJson("./config/unit_test.json")
+        }
         if (process.env.TEST_MULTI_SOURCE) {
             SOURCE="&source=Nimes";
             conf = config.getConfig("Nimes")
