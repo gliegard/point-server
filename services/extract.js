@@ -86,70 +86,70 @@ function computeTodayDateFormatted() {
   var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
   return date;
 }
-  
+
 
 function computePdalPipeline(conf, polygon, outFile, x1, x2, y1, y2) {
-    let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
-    let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
-    // debug(c1);
-    // debug(c2);
+  let c1 = new itowns.Coordinates('EPSG:2154', +(x1), +(y1), -100).as('EPSG:4978');
+  let c2 = new itowns.Coordinates('EPSG:2154', +(x2), +(y2), 1000).as('EPSG:4978');
+  // debug(c1);
+  // debug(c2);
 
-    initMatrix(conf);
-    c1.applyMatrix4(conf.mat);
-    c2.applyMatrix4(conf.mat);
-  
-    // create bounds in for pdal pipeline
-    const bounds = '([' + Math.min(c1.x, c2.x) + ', ' + Math.max(c1.x, c2.x) + '], ['
-        + Math.min(c1.y, c2.y) + ', ' + Math.max(c1.y, c2.y) + '], ['
-        + Math.min(c1.z,c2.z) + ', ' + Math.max(c1.z, c2.z) + '])';
-    // debug(bounds);
-  
-    // create pdal pipeline in Json
-    const template2 = parse(jsonPdalTemplate);
-    const pdalPipeline = template2({eptFilename: conf.EPT_JSON, bounds, matrixTransformation: conf.matrixTransformation, polygon, outFile });
-    return JSON.stringify(pdalPipeline, null, 2)
+  initMatrix(conf);
+  c1.applyMatrix4(conf.mat);
+  c2.applyMatrix4(conf.mat);
+
+  // create bounds in for pdal pipeline
+  const bounds = '([' + Math.min(c1.x, c2.x) + ', ' + Math.max(c1.x, c2.x) + '], ['
+      + Math.min(c1.y, c2.y) + ', ' + Math.max(c1.y, c2.y) + '], ['
+      + Math.min(c1.z,c2.z) + ', ' + Math.max(c1.z, c2.z) + '])';
+  // debug(bounds);
+
+  // create pdal pipeline in Json
+  const template2 = parse(jsonPdalTemplate);
+  const pdalPipeline = template2({eptFilename: conf.EPT_JSON, bounds, matrixTransformation: conf.matrixTransformation, polygon, outFile });
+  return JSON.stringify(pdalPipeline, null, 2)
+}
+
+function spawnPdal(next, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename) {
+  var args = ['pipeline', '-s'];
+  if (writePdalPipelineFile) {
+    debug('Write PDAL pipeline file on the disk');
+    fs.writeFileSync(pdalPipelineFilename, pdalPipelineJSON);
+
+    args = ['pipeline', '-i', pdalPipelineFilename];
   }
+  // call PDAL to extract pointcloud
+  debug('call pdal subprocess : pdal ' + args);
+  const child = spawn('pdal', args);
 
-  function spawnPdal(next, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename) {
-    var args = ['pipeline', '-s'];
-    if (writePdalPipelineFile) {
-      debug('Write PDAL pipeline file on the disk');
-      fs.writeFileSync(pdalPipelineFilename, pdalPipelineJSON);
+  child.stderr.on('data', (data) => {
+    next(new Error('PDAL error: ' + data));
+  });
 
-      args = ['pipeline', '-i', pdalPipelineFilename];
-    }
-    // call PDAL to extract pointcloud
-    debug('call pdal subprocess : pdal ' + args);
-    const child = spawn('pdal', args);
+  child.on('error', (err) => {
 
-    child.stderr.on('data', (data) => {
-      next(new Error('PDAL error: ' + data));
-    });
+    info('Failed to start PDAL subprocess.' + err.message);
 
-    child.on('error', (err) => {
-
-      info('Failed to start PDAL subprocess.' + err.message);
-
-      // Handle 'pdal not found' error
-      if (err.message.indexOf('ENOENT') > 0) {
-        const tips = ' To fix: conda-activate point-server, before launching the server, to have pdal in the path';
-        err.message += tips;
-        info(tips);
-      }
-
-      next(new Error(err));
-    });
-
-    if (!writePdalPipelineFile) {
-      child.stdin.setEncoding('utf-8');
-      child.stdin.cork();
-      child.stdin.write(pdalPipelineJSON);
-      child.stdin.uncork();
-      child.stdin.end();
+    // Handle 'pdal not found' error
+    if (err.message.indexOf('ENOENT') > 0) {
+      const tips = ' To fix: conda-activate point-server, before launching the server, to have pdal in the path';
+      err.message += tips;
+      info(tips);
     }
 
-    return child;
+    next(new Error(err));
+  });
+
+  if (!writePdalPipelineFile) {
+    child.stdin.setEncoding('utf-8');
+    child.stdin.cork();
+    child.stdin.write(pdalPipelineJSON);
+    child.stdin.uncork();
+    child.stdin.end();
   }
+
+  return child;
+}
 
 
 function spawnS3cmdPut(next, newFile, storedFileWrite) {
@@ -170,6 +170,25 @@ function spawnS3cmdPut(next, newFile, storedFileWrite) {
   return child;
 }
 
+function spawnS3cmdRM(next, storedFileWrite) {
+
+  const args = ['rm', storedFileWrite]
+  debug('call s3cmd subprocess : s3cmd ' + args);
+  const child = spawn('s3cmd', args);
+
+  child.stderr.on('data', (data) => {
+    console.log("S3CMD output (lead to error): " + data)
+    next(new Error('S3CMD error: ' + data));
+  });
+
+  child.on('error', (err) => {
+    info('Failed to start S3CMD subprocess.' + err.message);
+    next(new Error(err));
+  });
+
+  return child;
+}
+
 module.exports = {
   computeBoundingBox,
   computeArea,
@@ -178,4 +197,5 @@ module.exports = {
   computePdalPipeline,
   spawnPdal,
   spawnS3cmdPut,
+  spawnS3cmdRM
 }

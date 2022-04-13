@@ -1,8 +1,3 @@
-- Return_202 when request is accepted
-  - before calling pdal : return status 202 to tell the user to wait
-  - and store the information on disk or S3, file hash.process
-  - then the client do the same request, same response
-  - then the client do the same request, reponse with the final response
 
 - Test all possible error:
   - polygon with bad coordinate (ex poly=a,b,c) throw exception in extract method that kills the server
@@ -10,8 +5,6 @@
   - non existing pivot file
   - non existing ept file -> make pdal error
   - non existing store -> make S3CMD error
-
-- Write log for S3CMD and PDAL errors
 
 - use node-fetch to read file and url easily ?
 
