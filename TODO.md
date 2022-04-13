@@ -1,5 +1,26 @@
-- Config file with Docker
-  - Make the tests work
+
+- Test all possible error:
+  - polygon with bad coordinate (ex poly=a,b,c) throw exception in extract method that kills the server
+    - manage exception thrown
+  - non existing pivot file
+  - non existing ept file -> make pdal error
+  - non existing store -> make S3CMD error
+
+- use node-fetch to read file and url easily ?
+
+- polygon param in req.body.poly
+
+- open API
+  - express-open-api-validator
+  - swagger-ui
+  - Client REST : Insomnia
+
+- health
+  - check every 30 sec S3 health
+  - if S3 is down, block all requests
+  - use event emitter
+
+- config in an API, to reload config without restarting the server
 
 - Verif config :
   - Loading config : Check undefined value for needed config
@@ -11,11 +32,12 @@
   - bad store write url
 
 - Health
+  - API version
   - show PDAL version
   - show S3CMD version
   - Check config file existence
 
-- Upload the Las file on the S3 folder using a library https://www.npmjs.com/package/s3
+- Upload the Las file on the S3 folder using a library https://www.npmjs.com/package/s3 ; or AWS-SDK
     - Now it's S3CMD sub process
 
 - 12 factor app : https://12factor.net/fr/
@@ -29,3 +51,4 @@
 
 - Allow itown planar mode (means serve point cloud in a Non geocentric proj)
   - Use other pipeline template file
+  

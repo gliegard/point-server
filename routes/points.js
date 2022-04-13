@@ -48,18 +48,21 @@ router.get('/', function(req, res, next) {
   // handle config error
   if (conf == undefined) {
     var msg = "Bad config: there is not any config";
+    var id = 'BAD_REQUEST_NO_CONFIG'
     if (source) {
       msg = 'Bad config for source ' + source;
+      id = 'BAD_REQUEST_NO_SOURCE'
     }
     info(msg);
-    res.status(400).send(msg + '\n');
+    res.status(400).json({id: id, error: msg});
     return;
   }
 
   // handle polygon errors
   if (!polygon) {
-    info("Bad Request: You must specify a polygon to crops")
-    res.status(400).send('Bad Request: You must specify a polygon to crop\n');
+    const msg = "Bad Request: You must specify a polygon to crops";
+    info(msg);
+    res.status(400).json({id: 'BAD_REQUEST_NO_POLYGON', error: msg});
     return;
   }
 
@@ -67,8 +70,9 @@ router.get('/', function(req, res, next) {
   polygon_points = polygon.split(',')
 
   if (polygon_points.length < 3) {
-    info("Bad Request: Polygon must have at least 3 points")
-    res.status(400).send("Bad Request: Polygon must have at least 3 points\n");
+    const msg = "Bad Request: Polygon must have at least 3 points";
+    info(msg);
+    res.status(400).json({id: 'BAD_REQUEST_BAD_POLYGON', error: msg});
     return;
   }
   // Manage Invalid ring. When First point is not equal to the last point.
@@ -93,7 +97,7 @@ router.get('/', function(req, res, next) {
   if (area_limit_in_square_meter > 0 && area > area_limit_in_square_meter) {
     const msg = 'Bad Request: Area is to big ('+ area + 'm²) ; limit is set to ' + area_limit_in_square_meter + 'm²)';
     info(msg);
-    res.status(400).send(msg + '\n');
+    res.status(400).json({id: 'BAD_REQUEST_AREA', error: msg});
     return;
   }
 
@@ -106,9 +110,12 @@ router.get('/', function(req, res, next) {
   algo.storedFileRead = conf.STORE_READ_URL + '/' + date + '/' + hash + '/' + algo.filename;
   algo.storedFileWrite = conf.STORE_WRITE_URL + '/' + date + '/' + hash + '/' + algo.filename;
 
+  algo.storedProcessingRead = conf.STORE_READ_URL + '/' + date + '/' + hash + '/' + algo.filename + ".processing";
+  algo.storedProcessingWrite = conf.STORE_WRITE_URL + '/' + date + '/' + hash + '/' + algo.filename + ".processing";
+
   // RETURN_URL : true: avoid using the response to send the file; upload the file to the store, and redirect the request.
   // RETURN_URL env var: false:  in dev mode, if you don't have S3 file store.
-  if (conf.RETURN_URL) {
+  if (algo.conf.RETURN_URL) {
 
     // test url existence
     urlExists(algo.storedFileRead, function(err, exists) {
@@ -122,19 +129,18 @@ router.get('/', function(req, res, next) {
         res.redirect(algo.storedFileRead);
       } else {
 
-        extractPointCloud(next, res, algo);
+        extractPointCloud1(next, res, algo);
       }
     });
 
   } else {
 
-    extractPointCloud(next, res, algo);
+    extractPointCloud1(next, res, algo);
   }
-
 
 });
 
-function extractPointCloud(next, res, algo) {
+function extractPointCloud1(next, res, algo) {
   const pivot = algo.conf.PIVOT_THREEJS;
   if (!algo.conf.pivot) {
     debug("request pivot " + algo.conf.PIVOT_THREEJS);
@@ -177,17 +183,74 @@ function readFileOrUrl(url, err, callback) {
 
 function extractPointCloud2(next, res, algo) {
 
+  if (algo.conf.RETURN_URL) {
+    verifyProcessingFileOnStore(next, res, algo);
+
+  } else {
+    extractPointCloud3(next, res, algo);
+  }
+}
+
+function verifyProcessingFileOnStore(next, res, algo) {
+
+  // test process file existence, to see if request is already proceed
+  urlExists(algo.storedProcessingRead, function(err, exists) {
+    if (err) {
+      next(new Error(err));
+    }
+
+    // if file exists send 202 to tell user we already have a process doing the job
+    if (exists) {
+      info('File already being processed, because url exists : ' + algo.storedProcessingRead);
+
+      // read process file, it may contain error
+      readFileOrUrl(algo.storedProcessingRead, err => { next(err)}, function(fileContent) {
+        processing = JSON.parse(fileContent);
+        if (processing.id == "SERVICE_UNAVAILABLE") {
+
+          info('File has been processed with eror : return error 500 Service unavailable');
+          res.status(500).json(processing);
+
+          // remove file on the store, so that user can re ask for the file
+          extract.spawnS3cmdRM(next, algo.storedProcessingWrite);
+
+        } else {
+
+          res.status(202).json({});
+        }
+      });
+    } else {
+
+      writeProcessingFile(next,res,algo);
+    }
+  });
+}
+
+function writeProcessingFile(next, res, algo) {
+
+  const child = extract.spawnS3cmdPut(next, "./services/process", algo.storedProcessingWrite)
+
+  child.on('close', (code) => {
+
+    res.status(202).json({});
+    extractPointCloud3(next, res, algo);
+  });
+}
+
+function extractPointCloud3(next, res, algo) {
+
   // use uniqe id
   const unique_id = uuidv4();
   const newFile = tmpFolder + '/' + unique_id + '-' + algo.filename;
 
-  
   // compute pdal pipeline file
   const pdalPipelineFilename = tmpFolder + '/' + unique_id + '-pipeline.json';
   const pdalPipelineJSON = extract.computePdalPipeline(algo.conf, algo.polygon, newFile, algo.x1, algo.x2, algo.y1, algo.y2);
 
   // spawn child process
-  const child = extract.spawnPdal(next, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
+  const child = extract.spawnPdal((error)=> {
+    errorInFile(error, next, algo);
+  }, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
 
   child.on('close', (code) => {
 
@@ -197,7 +260,7 @@ function extractPointCloud2(next, res, algo) {
 
       if (algo.conf.RETURN_URL) {
 
-        storeFileAndReturnURL(next, res, newFile, algo.storedFileRead, algo.storedFileWrite);
+        storeFile(next, res, newFile, algo.storedFileRead, algo.storedFileWrite);
       } else {
 
         sendFileInTheResponse(res, newFile, algo.filename);
@@ -207,7 +270,12 @@ function extractPointCloud2(next, res, algo) {
 
 }
 
-function storeFileAndReturnURL(next, res, newFile, storedFileRead, storedFileWrite) {
+function errorInFile(error, next, algo) {
+  logError(error);
+  const child = extract.spawnS3cmdPut(next, "./services/processError", algo.storedProcessingWrite)
+}
+
+function storeFile(next, res, newFile, storedFileRead, storedFileWrite) {
 
   const child = extract.spawnS3cmdPut(next, newFile, storedFileWrite)
 
@@ -216,11 +284,6 @@ function storeFileAndReturnURL(next, res, newFile, storedFileRead, storedFileWri
     removeFile(newFile);
 
     debug('done');
-    if (code == 0) {
-
-      info('Return URL: ' + storedFileRead);
-      res.redirect(storedFileRead);
-    }
   });
 
 }

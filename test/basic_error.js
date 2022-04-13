@@ -31,26 +31,28 @@ describe('API /points about polygon parameter', () => {
   })
 
   describe('API /points without polygon parameter', () => {
-    it('it should return 400', (done) => {
+    it('it should return 400 and a json body with id BAD_REQUEST_NO_POLYGON', (done) => {
       chai.request(app)
         .get('/points')
         .end((err, res) => {
           should.equal(err, null);
           res.should.have.status(400);
-          res.text.should.contain('Bad Request: You must specify a polygon to crop');
+          res.should.be.json;
+          res.body.id.should.equal('BAD_REQUEST_NO_POLYGON');
           done();
         });
     });
   });
 
   describe('API /points with bad polygon made of 2 points', () => {
-    it('it should return 400', (done) => {
+    it('it should return 400 a json body with id BAD_REQUEST_BAD_POLYGON', (done) => {
       chai.request(app)
         .get('/points?poly=271113_6734674,271113_6734717')
         .end((err, res) => {
           should.equal(err, null);
           res.should.have.status(400);
-          res.text.should.contain('Bad Request: Polygon must have at least 3 points');
+          res.should.be.json;
+          res.body.id.should.equal('BAD_REQUEST_BAD_POLYGON');
           done();
         });
     });
@@ -78,8 +80,8 @@ describe('API /points surface reach limit', () => {
       .end((err, res) => {
         should.equal(err, null);
         res.should.have.status(400);
-        console.log('res.text: ' + res.text)
-        res.text.should.contain('Bad Request: Area is to big');
+        res.should.be.json;
+        res.body.id.should.equal('BAD_REQUEST_AREA');
         done();
       });
   });
