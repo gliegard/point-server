@@ -239,45 +239,57 @@ function writeProcessingFile(next, res, algo) {
 
 function extractPointCloud3(next, res, algo) {
 
-  // use uniqe id
-  const unique_id = uuidv4();
-  const newFile = tmpFolder + '/' + unique_id + '-' + algo.filename;
+  try {
 
-  // compute pdal pipeline file
-  const pdalPipelineFilename = tmpFolder + '/' + unique_id + '-pipeline.json';
-  const pdalPipelineJSON = extract.computePdalPipeline(algo.conf, algo.polygon, newFile, algo.x1, algo.x2, algo.y1, algo.y2);
+    // use uniqe id
+    const unique_id = uuidv4();
+    const newFile = tmpFolder + '/' + unique_id + '-' + algo.filename;
 
-  // spawn child process
-  const child = extract.spawnPdal((error)=> {
-    errorInFile(error, next, algo);
-  }, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
+    // compute pdal pipeline file
+    const pdalPipelineFilename = tmpFolder + '/' + unique_id + '-pipeline.json';
+    const pdalPipelineJSON = extract.computePdalPipeline(algo.conf, algo.polygon, newFile, algo.x1, algo.x2, algo.y1, algo.y2);
 
-  child.on('close', (code) => {
+    // spawn child process
+    const child = extract.spawnPdal((error)=> {
+      handleError(error, next, algo);
+    }, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
 
-    debug('done');
+    child.on('close', (code) => {
 
-    if (code == 0) {
+      debug('done');
 
-      if (algo.conf.RETURN_URL) {
+      if (code == 0) {
 
-        storeFile(next, res, newFile, algo.storedFileRead, algo.storedFileWrite);
-      } else {
+        if (algo.conf.RETURN_URL) {
 
-        sendFileInTheResponse(res, newFile, algo.filename);
+          storeFile(next, newFile, algo.storedFileWrite);
+        } else {
+
+          sendFileInTheResponse(res, newFile, algo.filename);
+        }
       }
-    }
-  });
+    });
+
+  } catch(error) {
+    handleError(error, next,algo);
+  }
+
 
 }
 
-function errorInFile(error, next, algo) {
-  logError(error);
-  const child = extract.spawnS3cmdPut(next, "./services/processError", algo.storedProcessingWrite)
+function handleError(error, next, algo) {
+  // put this internal error on the S3 processing file
+  if (algo.RETURN_URL) {
+    logError(error);
+    const child = extract.spawnS3cmdPut(next, "./services/processError", algo.storedProcessingWrite);
+  } else {
+    next(error);
+  }
 }
 
-function storeFile(next, res, newFile, storedFileRead, storedFileWrite) {
+function storeFile(next, newFile, storedFileWrite) {
 
-  const child = extract.spawnS3cmdPut(next, newFile, storedFileWrite)
+  const child = extract.spawnS3cmdPut(next, newFile, storedFileWrite);
 
   child.on('close', (code) => {
 
