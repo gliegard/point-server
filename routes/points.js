@@ -198,17 +198,18 @@ function verifyProcessingFileOnStore(next, res, algo) {
     // process file exist and can be downloaded
     if (!error && response.statusCode == 200) {
 
-      info('File already being processed, because url exists : ' + algo.storedProcessingRead);
+      info('Request is already being processed, because .process file exists : ' + algo.storedProcessingRead);
 
-      processing = JSON.parse(body);
-      if (processing.id == "SERVICE_UNAVAILABLE") {
+      // in case of error during file processing, we store 1 in the .process file.
+      if (body == "1") {
 
         info('File has been processed with eror : return error 500 Service unavailable');
-        res.status(500).json(processing);
+        res.status(500).json({id:'SERVICE_UNAVAILABLE', error: 'Service Unavailable'});
 
         // remove file on the store, so that user can ask for the file again
-        info('Remove proceed file on the store: ' + algo.storedProcessingWrite);
+        info('Remove .process file on the store: ' + algo.storedProcessingWrite);
         extract.spawnS3cmdRM(next, algo.storedProcessingWrite);
+        // we does'nt wait for the end of the process because we don't have to do anything after
 
       } else {
 
