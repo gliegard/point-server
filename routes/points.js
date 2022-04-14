@@ -211,7 +211,7 @@ function verifyProcessingFileOnStore(next, res, algo) {
           info('File has been processed with eror : return error 500 Service unavailable');
           res.status(500).json(processing);
 
-          // remove file on the store, so that user can re ask for the file
+          // remove file on the store, so that user can ask for the file again
           extract.spawnS3cmdRM(next, algo.storedProcessingWrite);
 
         } else {

@@ -55,6 +55,17 @@ describe('API /points with, but it returns an URL of an S3 store', () => {
             });
     }).timeout(5000);
 
+    it('it should return 202 again', (done) => {
+        let data = '';
+        chai.request(app)
+            .get(request1)
+            .end((err, res) => {
+                should.equal(err, null);
+                res.should.have.status(202);
+                done();
+            });
+    }).timeout(5000);
+
     it('... wait 5 sec', (done) => {
         setTimeout(done, 5000);
     }).timeout(10000);
