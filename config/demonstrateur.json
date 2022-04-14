@@ -1,5 +1,5 @@
 {
-    "nimes": {
+    "http://lidarhd.pocgpf.ovh/data_test/lot7/blocs/NP/EPT_4978/ept.json": {
         "EPT_JSON": "ept://http://lidarhd.pocgpf.ovh/data_test/lot7/blocs/NP/EPT_4978/ept.json",
         "PIVOT_THREEJS": "http://lidarhd.pocgpf.ovh/data_test/lot7/blocs/NP/metadata/pivotTHREE.json",
         "SURFACE_MAX": 100000,
@@ -7,7 +7,7 @@
         "STORE_READ_URL": "http://lidarhd.pocgpf.ovh/tmp",
         "STORE_WRITE_URL": "s3://lidarhd/tmp"
     },
-    "foret": {
+    "http://lidarhd.pocgpf.ovh/data/ept/ept.json": {
         "EPT_JSON": "ept://http://lidarhd.pocgpf.ovh/data/ept/ept.json",
         "PIVOT_THREEJS": "http://lidarhd.pocgpf.ovh/data/metadata/pivotTHREE.json",
         "SURFACE_MAX": 100000,
