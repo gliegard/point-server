@@ -193,45 +193,36 @@ function extractPointCloud2(next, res, algo) {
 
 function verifyProcessingFileOnStore(next, res, algo) {
 
-  // test process file existence, to see if request is already proceed
-  urlExists(algo.storedProcessingRead, function(err, exists) {
-    if (err) {
-      next(new Error(err));
-    }
+  request.get(algo.storedProcessingRead, function (error, response, body) {
 
-    // if file exists send 202 to tell user we already have a process doing the job
-    if (exists) {
+    // process file exist and can be downloaded
+    if (!error && response.statusCode == 200) {
+
       info('File already being processed, because url exists : ' + algo.storedProcessingRead);
 
-      // read process file, it may contain error
-      readFileOrUrl(algo.storedProcessingRead, function (err) {
-        info('Error getting content of process file, but we return 202, so it\'s invisible for the client');
+      processing = JSON.parse(body);
+      if (processing.id == "SERVICE_UNAVAILABLE") {
+
+        info('File has been processed with eror : return error 500 Service unavailable');
+        res.status(500).json(processing);
+
+        // remove file on the store, so that user can ask for the file again
+        info('Remove proceed file on the store: ' + algo.storedProcessingWrite);
+        extract.spawnS3cmdRM(next, algo.storedProcessingWrite);
+
+      } else {
+
         res.status(202).json({});
-      }, function(fileContent) {
-
-        processing = JSON.parse(fileContent);
-        if (processing.id == "SERVICE_UNAVAILABLE") {
-
-          info('File has been processed with eror : return error 500 Service unavailable');
-          res.status(500).json(processing);
-
-          // remove file on the store, so that user can ask for the file again
-          info('Remove proceed file on the store: ' + algo.storedProcessingWrite);
-          extract.spawnS3cmdRM(next, algo.storedProcessingWrite);
-
-        } else {
-
-          res.status(202).json({});
-        }
-      });
+      }
     } else {
 
-      writeProcessingFile(next,res,algo);
+      info("Process file doest not exist");
+      writeProcessingFileAndExtractPointCloud(next,res,algo);
     }
   });
 }
 
-function writeProcessingFile(next, res, algo) {
+function writeProcessingFileAndExtractPointCloud(next, res, algo) {
 
   const child = extract.spawnS3cmdPut(next, "./services/process", algo.storedProcessingWrite)
 
