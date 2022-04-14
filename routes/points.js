@@ -149,7 +149,7 @@ function extractPointCloud1(next, res, algo) {
       extractPointCloud2(next, res, algo);
     });
   } else {
-    debug("re use pivot " + algo.conf.PIVOT_THREEJS);
+    // debug("re use pivot " + algo.conf.PIVOT_THREEJS);
     extractPointCloud2(next, res, algo);
   }
 }
@@ -204,7 +204,11 @@ function verifyProcessingFileOnStore(next, res, algo) {
       info('File already being processed, because url exists : ' + algo.storedProcessingRead);
 
       // read process file, it may contain error
-      readFileOrUrl(algo.storedProcessingRead, err => { next(err)}, function(fileContent) {
+      readFileOrUrl(algo.storedProcessingRead, function (err) {
+        info('Error getting content of process file, but we return 202, so it\'s invisible for the client');
+        res.status(202).json({});
+      }, function(fileContent) {
+
         processing = JSON.parse(fileContent);
         if (processing.id == "SERVICE_UNAVAILABLE") {
 
@@ -212,6 +216,7 @@ function verifyProcessingFileOnStore(next, res, algo) {
           res.status(500).json(processing);
 
           // remove file on the store, so that user can ask for the file again
+          info('Remove proceed file on the store: ' + algo.storedProcessingWrite);
           extract.spawnS3cmdRM(next, algo.storedProcessingWrite);
 
         } else {
@@ -279,7 +284,7 @@ function extractPointCloud3(next, res, algo) {
 
 function handleError(error, next, algo) {
   // put this internal error on the S3 processing file
-  if (algo.RETURN_URL) {
+  if (algo.conf.RETURN_URL) {
     logError(error);
     const child = extract.spawnS3cmdPut(next, "./services/processError", algo.storedProcessingWrite);
   } else {
