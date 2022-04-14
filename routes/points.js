@@ -149,7 +149,7 @@ function extractPointCloud1(next, res, algo) {
       extractPointCloud2(next, res, algo);
     });
   } else {
-    debug("re use pivot " + algo.conf.PIVOT_THREEJS);
+    // debug("re use pivot " + algo.conf.PIVOT_THREEJS);
     extractPointCloud2(next, res, algo);
   }
 }
@@ -193,40 +193,36 @@ function extractPointCloud2(next, res, algo) {
 
 function verifyProcessingFileOnStore(next, res, algo) {
 
-  // test process file existence, to see if request is already proceed
-  urlExists(algo.storedProcessingRead, function(err, exists) {
-    if (err) {
-      next(new Error(err));
-    }
+  request.get(algo.storedProcessingRead, function (error, response, body) {
 
-    // if file exists send 202 to tell user we already have a process doing the job
-    if (exists) {
+    // process file exist and can be downloaded
+    if (!error && response.statusCode == 200) {
+
       info('File already being processed, because url exists : ' + algo.storedProcessingRead);
 
-      // read process file, it may contain error
-      readFileOrUrl(algo.storedProcessingRead, err => { next(err)}, function(fileContent) {
-        processing = JSON.parse(fileContent);
-        if (processing.id == "SERVICE_UNAVAILABLE") {
+      processing = JSON.parse(body);
+      if (processing.id == "SERVICE_UNAVAILABLE") {
 
-          info('File has been processed with eror : return error 500 Service unavailable');
-          res.status(500).json(processing);
+        info('File has been processed with eror : return error 500 Service unavailable');
+        res.status(500).json(processing);
 
-          // remove file on the store, so that user can re ask for the file
-          extract.spawnS3cmdRM(next, algo.storedProcessingWrite);
+        // remove file on the store, so that user can ask for the file again
+        info('Remove proceed file on the store: ' + algo.storedProcessingWrite);
+        extract.spawnS3cmdRM(next, algo.storedProcessingWrite);
 
-        } else {
+      } else {
 
-          res.status(202).json({});
-        }
-      });
+        res.status(202).json({});
+      }
     } else {
 
-      writeProcessingFile(next,res,algo);
+      info("Process file doest not exist");
+      writeProcessingFileAndExtractPointCloud(next,res,algo);
     }
   });
 }
 
-function writeProcessingFile(next, res, algo) {
+function writeProcessingFileAndExtractPointCloud(next, res, algo) {
 
   const child = extract.spawnS3cmdPut(next, "./services/process", algo.storedProcessingWrite)
 
@@ -239,45 +235,57 @@ function writeProcessingFile(next, res, algo) {
 
 function extractPointCloud3(next, res, algo) {
 
-  // use uniqe id
-  const unique_id = uuidv4();
-  const newFile = tmpFolder + '/' + unique_id + '-' + algo.filename;
+  try {
 
-  // compute pdal pipeline file
-  const pdalPipelineFilename = tmpFolder + '/' + unique_id + '-pipeline.json';
-  const pdalPipelineJSON = extract.computePdalPipeline(algo.conf, algo.polygon, newFile, algo.x1, algo.x2, algo.y1, algo.y2);
+    // use uniqe id
+    const unique_id = uuidv4();
+    const newFile = tmpFolder + '/' + unique_id + '-' + algo.filename;
 
-  // spawn child process
-  const child = extract.spawnPdal((error)=> {
-    errorInFile(error, next, algo);
-  }, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
+    // compute pdal pipeline file
+    const pdalPipelineFilename = tmpFolder + '/' + unique_id + '-pipeline.json';
+    const pdalPipelineJSON = extract.computePdalPipeline(algo.conf, algo.polygon, newFile, algo.x1, algo.x2, algo.y1, algo.y2);
 
-  child.on('close', (code) => {
+    // spawn child process
+    const child = extract.spawnPdal((error)=> {
+      handleError(error, next, algo);
+    }, pdalPipelineJSON, writePdalPipelineFile, pdalPipelineFilename);
 
-    debug('done');
+    child.on('close', (code) => {
 
-    if (code == 0) {
+      debug('done');
 
-      if (algo.conf.RETURN_URL) {
+      if (code == 0) {
 
-        storeFile(next, res, newFile, algo.storedFileRead, algo.storedFileWrite);
-      } else {
+        if (algo.conf.RETURN_URL) {
 
-        sendFileInTheResponse(res, newFile, algo.filename);
+          storeFile(next, newFile, algo.storedFileWrite);
+        } else {
+
+          sendFileInTheResponse(res, newFile, algo.filename);
+        }
       }
-    }
-  });
+    });
+
+  } catch(error) {
+    handleError(error, next,algo);
+  }
+
 
 }
 
-function errorInFile(error, next, algo) {
-  logError(error);
-  const child = extract.spawnS3cmdPut(next, "./services/processError", algo.storedProcessingWrite)
+function handleError(error, next, algo) {
+  // put this internal error on the S3 processing file
+  if (algo.conf.RETURN_URL) {
+    logError(error);
+    const child = extract.spawnS3cmdPut(next, "./services/processError", algo.storedProcessingWrite);
+  } else {
+    next(error);
+  }
 }
 
-function storeFile(next, res, newFile, storedFileRead, storedFileWrite) {
+function storeFile(next, newFile, storedFileWrite) {
 
-  const child = extract.spawnS3cmdPut(next, newFile, storedFileWrite)
+  const child = extract.spawnS3cmdPut(next, newFile, storedFileWrite);
 
   child.on('close', (code) => {
 

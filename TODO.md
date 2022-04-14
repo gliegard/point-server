@@ -1,8 +1,8 @@
+- Test config on startup
+  - check pdal in the path
+  - should we request pivot file on startup ?
 
 - Test all possible error:
-  - polygon with bad coordinate (ex poly=a,b,c) throw exception in extract method that kills the server
-    - manage exception thrown
-  - non existing pivot file
   - non existing ept file -> make pdal error
   - non existing store -> make S3CMD error
 
