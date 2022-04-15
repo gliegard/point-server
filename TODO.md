@@ -1,10 +1,4 @@
-- TODO: nodenv et variable d'env
-  - .env pour mettre CONFIG_FILE, et les secret
-  - .env dans le gitignore
-  - .example.env example sans les secrets
-  - module nodenv et l'appeler dnas bin/www
-
-- TODO: - Use NodeCache to prevent user for spamming the same request.
+- Use NodeCache to prevent user for spamming the same request.
   - This lib should block request if it's the same since 1 second for example.
   - https://www.npmjs.com/package/node-cache
 
