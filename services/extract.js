@@ -170,25 +170,6 @@ function spawnS3cmdPut(next, newFile, storedFileWrite) {
   return child;
 }
 
-function spawnS3cmdRM(next, storedFileWrite) {
-
-  const args = ['rm', storedFileWrite]
-  debug('call s3cmd subprocess : s3cmd ' + args);
-  const child = spawn('s3cmd', args);
-
-  child.stderr.on('data', (data) => {
-    console.log("S3CMD output (lead to error): " + data)
-    next(new Error('S3CMD error: ' + data));
-  });
-
-  child.on('error', (err) => {
-    info('Failed to start S3CMD subprocess.' + err.message);
-    next(new Error(err));
-  });
-
-  return child;
-}
-
 module.exports = {
   computeBoundingBox,
   computeArea,
@@ -196,6 +177,5 @@ module.exports = {
   computeTodayDateFormatted,
   computePdalPipeline,
   spawnPdal,
-  spawnS3cmdPut,
-  spawnS3cmdRM
+  spawnS3cmdPut
 }

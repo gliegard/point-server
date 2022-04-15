@@ -1,5 +1,6 @@
 const extract = require('../services/extract');
 const config = require('../services/config');
+const storeS3 = require("../services/storeS3");
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -107,29 +108,29 @@ router.get('/', function(req, res, next) {
 
 	// create file names and url
   algo.filename = 'lidar_x_' + Math.floor(algo.x1) + '_y_' + Math.floor(algo.y1) + '.las';
-  algo.storedFileRead = conf.STORE_READ_URL + '/' + date + '/' + hash + '/' + algo.filename;
-  algo.storedFileWrite = conf.STORE_WRITE_URL + '/' + date + '/' + hash + '/' + algo.filename;
+  const fullPathFile = "/" + date + '/' + hash + '/' + algo.filename;
 
-  algo.storedProcessingRead = conf.STORE_READ_URL + '/' + date + '/' + hash + '/' + algo.filename + ".processing";
-  algo.storedProcessingWrite = conf.STORE_WRITE_URL + '/' + date + '/' + hash + '/' + algo.filename + ".processing";
-
+  algo.storedFileRead = conf.S3_TMP_FOLDER + fullPathFile;
+  algo.storedFileWrite = "s3://" + conf.S3_BUCKET + "/" + algo.storedFileRead;
+  algo.processFile = algo.storedFileRead + ".processing";
   // RETURN_URL : true: avoid using the response to send the file; upload the file to the store, and redirect the request.
   // RETURN_URL env var: false:  in dev mode, if you don't have S3 file store.
   if (algo.conf.RETURN_URL) {
 
-    // test url existence
-    urlExists(algo.storedFileRead, function(err, exists) {
-      if (err) {
-        next(new Error(err));
-      }
-
-      // if file exists send redirect
-      if (exists) {
-        info('File exist on the store, return URL: ' + algo.storedFileRead);
-        res.redirect(algo.storedFileRead);
-      } else {
-
-        extractPointCloud1(next, res, algo);
+    storeS3.initBucket(conf);
+    info('check if file exists on the store: ' + algo.storedFileRead);
+    algo.conf.s3bucket.getObject({Key: algo.storedFileRead}, function(err, data){
+      if(err) {
+          if (err.statusCode == 404) {
+              extractPointCloud1(next, res, algo);
+          } else {
+              console.log("Internal error: " + err);
+              next(new Error(err));
+          }
+      }else {
+        const redirectFile = conf.REDIRECT_URL + fullPathFile
+        info('File exist on the store, return URL: ' + redirectFile);
+        res.redirect(redirectFile);
       }
     });
 
@@ -193,41 +194,43 @@ function extractPointCloud2(next, res, algo) {
 
 function verifyProcessingFileOnStore(next, res, algo) {
 
-  request.get(algo.storedProcessingRead, function (error, response, body) {
+  algo.conf.s3bucket.getObject({Key: algo.processFile}, function(err, data){
+    if(err) {
+        if (err.statusCode == 404) {
 
-    // process file exist and can be downloaded
-    if (!error && response.statusCode == 200) {
+            info("Process file doest not exist");
+            writeProcessingFileAndExtractPointCloud(next,res,algo);
+        } else {
+            console.log("Internal error: " + err);
+            next(new Error(err));
+        }
 
-      info('File already being processed, because url exists : ' + algo.storedProcessingRead);
+    }else {
+      info('Request is already being processed, because .process file exists : ' + algo.processFile);
 
-      processing = JSON.parse(body);
-      if (processing.id == "SERVICE_UNAVAILABLE") {
-
-        info('File has been processed with eror : return error 500 Service unavailable');
-        res.status(500).json(processing);
-
+      // in case of error during file processing, we store 1 in the .process file.
+      size = data.ContentLength;
+      if (size > 0) {
         // remove file on the store, so that user can ask for the file again
-        info('Remove proceed file on the store: ' + algo.storedProcessingWrite);
-        extract.spawnS3cmdRM(next, algo.storedProcessingWrite);
+        info('Remove .process file on the store: ' + algo.processFile);
+        algo.conf.s3bucket.deleteObject({Key: algo.processFile}, function(err, data) {
 
+          // return error to the user
+          info('File has been processed with eror : return error 500 Service unavailable');
+          res.status(500).json({id:'SERVICE_UNAVAILABLE', error: 'Service Unavailable'});
+        });
       } else {
 
         res.status(202).json({});
       }
-    } else {
-
-      info("Process file doest not exist");
-      writeProcessingFileAndExtractPointCloud(next,res,algo);
     }
   });
 }
 
 function writeProcessingFileAndExtractPointCloud(next, res, algo) {
-
-  const child = extract.spawnS3cmdPut(next, "./services/process", algo.storedProcessingWrite)
-
-  child.on('close', (code) => {
-
+  info("Try to upload process file : "+ algo.processFile);
+  algo.conf.s3bucket.upload({ Key: algo.processFile, Body: "" }, function(err, data) {
+    info("Process file uploaded !!");
     res.status(202).json({});
     extractPointCloud3(next, res, algo);
   });
@@ -252,7 +255,7 @@ function extractPointCloud3(next, res, algo) {
 
     child.on('close', (code) => {
 
-      debug('done');
+      debug('PDAL have created the file !');
 
       if (code == 0) {
 
@@ -275,11 +278,15 @@ function extractPointCloud3(next, res, algo) {
 
 function handleError(error, next, algo) {
   // put this internal error on the S3 processing file
-  if (algo.conf.RETURN_URL) {
-    logError(error);
-    const child = extract.spawnS3cmdPut(next, "./services/processError", algo.storedProcessingWrite);
-  } else {
-    next(error);
+  try {
+    if (algo.conf.RETURN_URL) {
+      logError(error);
+      algo.conf.s3bucket.upload({ Key: algo.processFile, Body: "1" }, function(err, data) {});
+    } else {
+      next(error);
+    }
+  } catch(err) {
+    next(err);
   }
 }
 
@@ -291,7 +298,7 @@ function storeFile(next, newFile, storedFileWrite) {
 
     removeFile(newFile);
 
-    debug('done');
+    debug('File stored on the store :' + storedFileWrite);
   });
 
 }
@@ -301,7 +308,7 @@ function sendFileInTheResponse(res, newFile, filename) {
   const outputFile = path.resolve(__dirname, '../' + newFile);
   res.setHeader('Content-disposition', 'attachment; filename=' + filename);
 
-  info('send:', newFile);
+  info('send file in response:', newFile);
   res.sendFile(outputFile, {}, function (err) {
 
     if(err){
