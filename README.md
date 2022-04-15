@@ -16,13 +16,11 @@ npm install
 
 ## run
 
+Create a `.env` file copied from `.example.env` with your specific secret values.
+Then start the server.
+
 ```
 conda activate point-server
-
-export CONFIG_FILE=./config/unit_test.json
-export DEBUG_COLORS=true
-export DEBUG=point*,store*
-
 npm start
 ```
 

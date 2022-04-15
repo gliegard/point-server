@@ -24,11 +24,12 @@ if (app.get('env') === 'development') {
   debug('mode development');
 }
 
-app.use('/favicon.ico', express.static('public/images/favicon.ico'));
-
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+if (app.get('env') === 'development') {
+  app.use('/favicon.ico', express.static('public/images/favicon.ico'));
+  app.set('views', path.join(__dirname, 'views'));
+  app.set('view engine', 'pug');
+}
 
 app.use(logger('dev'));
 app.use(express.json());

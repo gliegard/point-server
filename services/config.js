@@ -1,16 +1,11 @@
 var fs = require('fs');
+var debug = require('debug')('point-server:config');
 
 var configs;
 
-// const KEY_EPT_JSON = "EPT_JSON";
-// const KEY_PIVOT_THREEJS = "PIVOT_THREEJS";
-// const KEY_SURFACE_MAX = "SURFACE_MAX";
-// const KEY_STORE_READ_URL = "STORE_READ_URL";
-// const KEY_STORE_WRITE_URL = "STORE_WRITE_URL";
-// const KEY_RETURN_URL = "RETURN_URL";
-
 function init() {
-    const filename = process.env.CONFIG_FILE;
+    const filename = process.env.CONFIG_FILE || "./config/micro.json";
+    debug("configuration file: " + filename);
     try {
         loadJson(filename);
     } catch (error) {
@@ -22,6 +17,11 @@ function init() {
 function loadJson(filename) {
     data = fs.readFileSync(filename, 'utf8', 'r');
     configs = JSON.parse(data);
+
+    // log config loaded
+    for (const key in configs) {
+        debug("config loaded: " + key);
+    }
 }
 
 function print() {
