@@ -4,7 +4,8 @@
         "PIVOT_THREEJS": "http://lidarhd.pocgpf.ovh/data/metadata/pivotTHREE.json",
         "SURFACE_MAX": 100000,
         "RETURN_URL": true,
-        "STORE_READ_URL": "http://lidarhd.pocgpf.ovh/tmp",
-        "STORE_WRITE_URL": "s3://lidarhd/tmp"
+        "S3_BUCKET": "lidarhd",
+        "S3_TMP_FOLDER": "tmp",
+        "REDIRECT_URL": "http://lidarhd.pocgpf.ovh/tmp"
     }
 }

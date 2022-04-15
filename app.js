@@ -6,7 +6,9 @@ var logger = require('morgan');
 var debug = require('debug')('point-server:app');
 
 var config = require('./services/config.js')
+var storeS3 = require('./services/storeS3.js')
 config.init();
+storeS3.init();
 
 var indexRouter = require('./routes/index');
 var pointsRouter = require('./routes/points');
