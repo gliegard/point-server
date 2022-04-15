@@ -1,6 +1,13 @@
-- Test config on startup
-  - check pdal in the path
-  - should we request pivot file on startup ?
+- Verify pdal is in the path on startup
+
+- Log: Use Log4JS
+
+- Use NodeCache to prevent user for spamming the same request.
+  - This lib should block request if it's the same since 1 second for example.
+  - https://www.npmjs.com/package/node-cache
+
+- default value for CONFIG_FILE env var, bind on demonstrateur config,
+  - and log loaded configs
 
 - Test all possible error:
   - non existing ept file -> make pdal error
@@ -37,7 +44,7 @@
   - show S3CMD version
   - Check config file existence
 
-- Upload the Las file on the S3 folder using a library https://www.npmjs.com/package/s3 ; or AWS-SDK
+- Should we use AWS-SDK to upload LAS file on the S3 store ? 
     - Now it's S3CMD sub process
 
 - 12 factor app : https://12factor.net/fr/
@@ -51,4 +58,3 @@
 
 - Allow itown planar mode (means serve point cloud in a Non geocentric proj)
   - Use other pipeline template file
-  
