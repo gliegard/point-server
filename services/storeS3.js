@@ -1,6 +1,5 @@
 var AWS = require('aws-sdk');
 var proxy = require('proxy-agent');
-var fs = require('fs');
 var debug = require('debug')('storeS3');
 var s3;
 
@@ -10,8 +9,7 @@ function init() {
     }
     debug('Init S3 store');
     AWS.config.update({
-        // for OVH, set AWS_ENDPOINT env var to 's3.gra.cloud.ovh.net'
-        endpoint: process.env.AWS_ENDPOINT,
+        endpoint: process.env.AWS_ENDPOINT || 's3.gra.cloud.ovh.net',
     });
 
     if (process.env.http_proxy) {
