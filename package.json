@@ -19,6 +19,7 @@
     "itowns": "^2.34.0",
     "json-templates": "^4.1.0",
     "morgan": "~1.9.1",
+    "proxy-agent": "^5.0.0",
     "pug": "^3.0.2",
     "request": "^2.88.2",
     "url-exists": "^1.0.3",
