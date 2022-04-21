@@ -1,23 +1,24 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-var debug = require('debug')('point-server:app');
+const express = require('express');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const logger = require('morgan');
+const debug = require('debug')('point-server:app');
+const cors = require('cors');
 
-var config = require('./services/config.js')
-var storeS3 = require('./services/storeS3.js')
+const config = require('./services/config.js');
+const storeS3 = require('./services/storeS3.js');
 config.init();
 storeS3.init();
 
-var indexRouter = require('./routes/index');
-var pointsRouter = require('./routes/points');
+const indexRouter = require('./routes/index');
+const pointsRouter = require('./routes/points');
 
 const version = process.env.npm_package_version;
 
 debug('start point server version ' + version);
 
-var app = express();
+const app = express();
+app.use(cors());
 
 // NODE_ENV env var undefined means 'development' ; used to render errors during dev.
 if (app.get('env') === 'development') {
@@ -50,7 +51,6 @@ app.use(function(err, req, res, next) {
   } else {
     res.status(500).json({id:'SERVICE_UNAVAILABLE', error: 'Service Unavailable'});
   }
-
 });
 
 module.exports = app;
