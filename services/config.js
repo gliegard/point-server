@@ -47,6 +47,10 @@ function loadJson(filename) {
     }
 }
 
+function formatDatasetURL(url, dataset) {
+    return url.replaceAll("{dataset}", dataset);
+}
+
 /**
  * @typedef {{
  *   EPT_JSON?: string;
@@ -64,6 +68,7 @@ function loadJson(filename) {
 module.exports = {
     init,
     loadJson,
+    formatDatasetURL,
     /**
      * @type {{[key: string]: Config}}
      */

@@ -95,8 +95,8 @@ function handleRequest(req, res, next, conf, source) {
   }
 
   // format ept & pivot urls
-  conf.ept = conf.EPT_JSON.replaceAll("{dataset}", source);
-  conf.pivot_file = conf.PIVOT_THREEJS.replaceAll("{dataset}", source);
+  conf.ept = "ept://" + config.formatDatasetURL(conf.EPT_JSON, source);
+  conf.pivot_file = config.formatDatasetURL(conf.PIVOT_THREEJS, source);
 
   // object to store many variables
   /**

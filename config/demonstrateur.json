@@ -1,6 +1,6 @@
 {
     "default": {
-        "EPT_JSON": "ept://https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/data/{dataset}/EPT_4978/ept.json",
+        "EPT_JSON": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/data/{dataset}/EPT_4978/ept.json",
         "PIVOT_THREEJS": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/data/{dataset}/metadata/pivotTHREE.json",
         "SURFACE_MAX": 100000,
         "RETURN_URL": true,
@@ -12,7 +12,7 @@
         "DATASETS": [ "paris" ], "$note1": "When given an empty array, auto-discover from S3"
     },
     "paris": {
-        "EPT_JSON": "ept://https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/EPT_4978/ept.json",
+        "EPT_JSON": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/EPT_4978/ept.json",
         "PIVOT_THREEJS": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/metadata/pivotTHREE.json"
     }
 }
