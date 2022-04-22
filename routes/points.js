@@ -29,28 +29,16 @@ function removeFile(file) {
   })
 }
 
-function verifySource(conf, source) {
-  return new Promise((resolve, reject) => {
-    let datasets = config.global.DATASETS;
-    if (datasets && datasets.length)
-      datasets.includes(source) ? resolve() : reject();
-    else {
-      storeS3.listFolders(conf.S3_DATA_BUCKET, conf.S3_DATA_FOLDER)
-        .then(folders => folders.includes(source) ? resolve() : reject())
-        .catch(err => {
-          logError(err);
-          reject();
-        });
-    }
-  });
-}
-
 /* GET points listing. */
 router.get('/', function(req, res, next) {
   // source param, to load specific config
   let source = req.query.source;
-  let conf = config.bySource[source];
+  config.retrieveDatasetConf(source)
+    .then(([conf, dataset]) => handleRequest(req, res, next, conf, dataset))
+    .catch(() => res.status(400).json({id: 'BAD_REQUEST_UNKNOWN_SOURCE', error: 'Unknown data source: ' + source}));
+});
 
+function handleRequest(req, res, next, conf, source) {
   // handle config error
   if (!conf.EPT_JSON || !conf.PIVOT_THREEJS) {
     let msg = "Bad config: there is not any config";
@@ -64,13 +52,6 @@ router.get('/', function(req, res, next) {
     return;
   }
 
-  // handle unknown source
-  verifySource(conf, source)
-    .then(() => handleRequest(req, res, next, conf, source))
-    .catch(() => res.status(400).json({id: 'BAD_REQUEST_UNKNOWN_SOURCE', error: 'Unknown data source: ' + source}));
-});
-
-function handleRequest(req, res, next, conf, source) {
   // handle polygon errors
   let polygon = req.query.poly;
   if (!polygon) {

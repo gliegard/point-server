@@ -9,7 +9,9 @@
         "S3_RESULT_BUCKET": "extraction",
         "S3_RESULT_FOLDER": "data",
         "DOWNLOAD_URL": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/extraction/data",
-        "DATASETS": [ "paris" ], "$note1": "When given an empty array, auto-discover from S3"
+        "AUTODISCOVER_DATASETS_FROM_S3": true,
+        "STATIC_DATASETS": [ "paris" ],
+        "DEFAULT_DATASET": "igaro"
     },
     "paris": {
         "EPT_JSON": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/EPT_4978/ept.json",

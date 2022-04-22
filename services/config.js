@@ -1,6 +1,24 @@
 const fs = require('fs');
-const debug = require('debug')('point-server:config');
+const storeS3 = require("./storeS3");
+const debugModule = require("debug");
+const debug = debugModule('point-server:config');
+const logError = debugModule('point-server:config-error')
 const DEFAULT_CONFIG_KEY = "default";
+
+/**
+ * @typedef {{
+ *   EPT_JSON?: string;
+ *   PIVOT_THREEJS?: string;
+ *   SURFACE_MAX?: number;
+ *   RETURN_URL?: boolean;
+ *   S3_DATA_BUCKET?: string;
+ *   S3_DATA_FOLDER?: string;
+ *   S3_RESULT_BUCKET?: string;
+ *   S3_RESULT_FOLDER?: string;
+ *   DOWNLOAD_URL?: string;
+ *   AUTODISCOVER_DATASETS_FROM_S3?: boolean;
+ * }} Config
+ */
 
 let cfgs;
 // Proxy object allow us to intercept properties access with a custom getter
@@ -23,6 +41,8 @@ const configs = new Proxy({}, {
         throw new Error("Unsupported operation");
     }
 });
+/** @type {Config & {STATIC_DATASETS?: string[]; DEFAULT_DATASET?: string}} */
+const global = configs.default;
 
 function init() {
     const filename = process.env.CONFIG_FILE || "./config/micro.json";
@@ -51,30 +71,32 @@ function formatDatasetURL(url, dataset) {
     return url.replaceAll("{dataset}", dataset);
 }
 
-/**
- * @typedef {{
- *   EPT_JSON?: string;
- *   PIVOT_THREEJS?: string;
- *   SURFACE_MAX?: number;
- *   RETURN_URL?: boolean;
- *   S3_DATA_BUCKET?: string;
- *   S3_DATA_FOLDER?: string;
- *   S3_RESULT_BUCKET?: string;
- *   S3_RESULT_FOLDER?: string;
- *   DOWNLOAD_URL?: string;
- * }} Config
- */
+function retrieveDatasetConf(dataset) {
+    dataset = dataset || global.DEFAULT_DATASET || "";
+    const conf = configs[dataset];
+    return new Promise((resolve, reject) => {
+        let datasets = global.STATIC_DATASETS;
+        if (datasets && datasets.includes(dataset))
+            resolve([conf, dataset]);
+        else if (conf.AUTODISCOVER_DATASETS_FROM_S3) {
+            storeS3.listFolders(conf.S3_DATA_BUCKET, conf.S3_DATA_FOLDER)
+              .then(folders => folders.includes(dataset) ? resolve([conf, dataset]) : reject())
+              .catch(err => {
+                  logError(err);
+                  reject();
+              });
+        } else
+            reject();
+    });
+}
 
 module.exports = {
     init,
     loadJson,
     formatDatasetURL,
-    /**
-     * @type {{[key: string]: Config}}
-     */
+    retrieveDatasetConf,
+    /** @type {{[key: string]: Config}} */
     bySource: configs,
-    /**
-     * @type {Config & {DATASETS?: string[]}}
-     */
-    global: configs.default
+    /** @type {Config & {STATIC_DATASETS?: string[]; DEFAULT_DATASET?: string}} */
+    global
 };
