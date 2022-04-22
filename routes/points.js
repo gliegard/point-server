@@ -219,6 +219,7 @@ function verifyProcessingFileOnStore(next, res, algo) {
           // remove file on the store, so that user can ask for the file again
           info('Remove .process file on the store: ' + algo.processFile);
           storeS3.removeFile(algo.conf.S3_RESULT_BUCKET, algo.processFile)
+            .catch(logError)
             .finally(() => {
               // return error to the user
               info('File has been processed with eror : return error 500 Service unavailable');
@@ -239,7 +240,7 @@ function verifyProcessingFileOnStore(next, res, algo) {
 
 function writeProcessingFileAndExtractPointCloud(next, res, algo) {
   info("Try to upload process file : "+ algo.processFile);
-  storeS3.setFile(algo.conf.S3_RESULT_BUCKET, algo.processFile).finally(() => {
+  storeS3.setFile(algo.conf.S3_RESULT_BUCKET, algo.processFile).catch(logError).finally(() => {
     info("Process file uploaded !!");
     res.status(202).json({});
     extractPointCloud3(next, res, algo);
@@ -291,10 +292,11 @@ function handleError(error, next, algo) {
 
 function storeFile(next, newFile, algo) {
   storeS3.setFile(algo.conf.S3_RESULT_BUCKET, algo.storedFile, fs.readFileSync(newFile))
-    .finally(() => {
+    .then(() => {
       removeFile(newFile);
       debug('File stored on the store :' + algo.storedFile);
-    });
+    })
+    .catch(err => handleError(err, next, algo));
 }
 
 function sendFileInTheResponse(res, newFile, filename) {
