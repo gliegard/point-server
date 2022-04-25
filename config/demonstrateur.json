@@ -1,20 +1,20 @@
 {
-    "http://lidarhd.pocgpf.ovh/data_test/lot7/blocs/NP/EPT_4978/ept.json": {
-        "EPT_JSON": "ept://http://lidarhd.pocgpf.ovh/data_test/lot7/blocs/NP/EPT_4978/ept.json",
-        "PIVOT_THREEJS": "http://lidarhd.pocgpf.ovh/data_test/lot7/blocs/NP/metadata/pivotTHREE.json",
+    "default": {
+        "EPT_JSON": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/data/{dataset}/EPT_4978/ept.json",
+        "PIVOT_THREEJS": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/data/{dataset}/metadata/pivotTHREE.json",
         "SURFACE_MAX": 100000,
         "RETURN_URL": true,
-        "S3_BUCKET": "lidarhd",
-        "S3_TMP_FOLDER": "tmp",
-        "REDIRECT_URL": "http://lidarhd.pocgpf.ovh/tmp"
+        "S3_DATA_BUCKET": "lidar",
+        "S3_DATA_FOLDER": "data",
+        "S3_RESULT_BUCKET": "extraction",
+        "S3_RESULT_FOLDER": "data",
+        "DOWNLOAD_URL": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/extraction/data",
+        "AUTODISCOVER_DATASETS_FROM_S3": true,
+        "STATIC_DATASETS": [ "paris" ],
+        "DEFAULT_DATASET": "igaro"
     },
-    "http://lidarhd.pocgpf.ovh/data/ept/ept.json": {
-        "EPT_JSON": "ept://http://lidarhd.pocgpf.ovh/data/ept/ept.json",
-        "PIVOT_THREEJS": "http://lidarhd.pocgpf.ovh/data/metadata/pivotTHREE.json",
-        "SURFACE_MAX": 100000,
-        "RETURN_URL": true,
-        "S3_BUCKET": "lidarhd",
-        "S3_TMP_FOLDER": "tmp",
-        "REDIRECT_URL": "http://lidarhd.pocgpf.ovh/tmp"
+    "paris": {
+        "EPT_JSON": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/EPT_4978/ept.json",
+        "PIVOT_THREEJS": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/metadata/pivotTHREE.json"
     }
 }

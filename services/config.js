@@ -1,7 +1,48 @@
-var fs = require('fs');
-var debug = require('debug')('point-server:config');
+const fs = require('fs');
+const storeS3 = require("./storeS3");
+const debugModule = require("debug");
+const debug = debugModule('point-server:config');
+const logError = debugModule('point-server:config-error')
+const DEFAULT_CONFIG_KEY = "default";
 
-var configs;
+/**
+ * @typedef {{
+ *   EPT_JSON?: string;
+ *   PIVOT_THREEJS?: string;
+ *   SURFACE_MAX?: number;
+ *   RETURN_URL?: boolean;
+ *   S3_DATA_BUCKET?: string;
+ *   S3_DATA_FOLDER?: string;
+ *   S3_RESULT_BUCKET?: string;
+ *   S3_RESULT_FOLDER?: string;
+ *   DOWNLOAD_URL?: string;
+ *   AUTODISCOVER_DATASETS_FROM_S3?: boolean;
+ * }} Config
+ */
+
+let cfgs;
+// Proxy object allow us to intercept properties access with a custom getter
+// Retrieve config value if it exists, default one otherwise
+const configs = new Proxy({}, {
+    get(_, config) {
+        return new Proxy({}, {
+            get(target, key, receiver) {
+                if (Reflect.has(target, key))
+                    return Reflect.get(target, key, receiver);
+                const cfg = cfgs[config];
+                let val;
+                if (cfg && (val = cfg[key]))
+                    return val;
+                return cfgs[DEFAULT_CONFIG_KEY][key];
+            }
+        });
+    },
+    set() {
+        throw new Error("Unsupported operation");
+    }
+});
+/** @type {Config & {STATIC_DATASETS?: string[]; DEFAULT_DATASET?: string}} */
+const global = configs.default;
 
 function init() {
     const filename = process.env.CONFIG_FILE || "./config/micro.json";
@@ -9,41 +50,53 @@ function init() {
     try {
         loadJson(filename);
     } catch (error) {
-        console.log("Please define environment variable CONFIG_FILE. Actual: " + filename);
+        console.log("Please define environment variable CONFIG_FILE to a valid config file. Actual: " + filename);
         throw error;
     }
 }
 
 function loadJson(filename) {
-    data = fs.readFileSync(filename, 'utf8', 'r');
-    configs = JSON.parse(data);
+    const data = fs.readFileSync(filename, 'utf8', 'r');
+    cfgs = JSON.parse(data);
+    if (!(DEFAULT_CONFIG_KEY in cfgs))
+        throw new Error("Default config (key: " + DEFAULT_CONFIG_KEY + ") not found!");
 
     // log config loaded
-    for (const key in configs) {
+    for (const key in cfgs) {
         debug("config loaded: " + key);
     }
 }
 
-function print() {
-    for (const key in configs) {
-        console.log(key)
-        console.log(configs[key]);
-    }
+function formatDatasetURL(url, dataset) {
+    return url.replaceAll("{dataset}", dataset);
 }
 
-function getConfig(name) {
-    return configs[name];
-}
-
-function getFirst() {
-    for (key in configs)
-        return configs[key];
+function retrieveDatasetConf(dataset) {
+    dataset = dataset || global.DEFAULT_DATASET || "";
+    const conf = configs[dataset];
+    return new Promise((resolve, reject) => {
+        let datasets = global.STATIC_DATASETS;
+        if (datasets && datasets.includes(dataset))
+            resolve([conf, dataset]);
+        else if (conf.AUTODISCOVER_DATASETS_FROM_S3) {
+            storeS3.listFolders(conf.S3_DATA_BUCKET, conf.S3_DATA_FOLDER)
+              .then(folders => folders.includes(dataset) ? resolve([conf, dataset]) : reject())
+              .catch(err => {
+                  logError(err);
+                  reject();
+              });
+        } else
+            reject();
+    });
 }
 
 module.exports = {
     init,
     loadJson,
-    print,
-    getConfig,
-    getFirst
-}
+    formatDatasetURL,
+    retrieveDatasetConf,
+    /** @type {{[key: string]: Config}} */
+    bySource: configs,
+    /** @type {Config & {STATIC_DATASETS?: string[]; DEFAULT_DATASET?: string}} */
+    global
+};

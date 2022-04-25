@@ -1,7 +1,7 @@
-var AWS = require('aws-sdk');
-var proxy = require('proxy-agent');
-var debug = require('debug')('storeS3');
-var s3;
+const AWS = require('aws-sdk');
+const proxy = require('proxy-agent');
+const debug = require('debug')('storeS3');
+let s3;
 
 function init() {
     if (s3) {
@@ -21,14 +21,80 @@ function init() {
     s3 = new AWS.S3();
 }
 
-function initBucket(conf) {
-    if (!conf.s3bucket) {
-        // debug("Init S3 bucket for config: " + conf.S3_BUCKET);
-        conf.s3bucket = new AWS.S3({params: {Bucket: conf.S3_BUCKET}});
-    }
+function checkFile(bucket, file) {
+    return new Promise((resolve, reject) => {
+        s3.getObject({
+            Bucket: bucket,
+            Key: file,
+            Range: "bytes=0-0" // Request 0 byte of the file
+        }, err => {
+            if (err) {
+                if (err.statusCode === 404)
+                    resolve(false);
+                else
+                    reject(err);
+            } else
+                resolve(true);
+        });
+    });
+}
+
+function getFile(bucket, file) {
+    return new Promise((resolve, reject) => {
+        s3.getObject({
+            Bucket: bucket,
+            Key: file
+        }, (err, data) => {
+            if (err) {
+                if (err.statusCode === 404)
+                    resolve(null);
+                else
+                    reject(err);
+            } else
+                resolve(data);
+        });
+    });
+}
+
+function removeFile(bucket, file) {
+    return new Promise((resolve, reject) => {
+        s3.deleteObject({
+            Bucket: bucket,
+            Key: file
+        }, err => err ? reject(err) : resolve());
+    });
+}
+
+function setFile(bucket, file, content = "") {
+    return new Promise((resolve, reject) => {
+        s3.upload({
+            Bucket: bucket,
+            Key: file,
+            Body: content
+        }, err => err ? reject(err) : resolve());
+    })
+}
+
+function listFolders(bucket, folder) {
+    return new Promise((resolve, reject) => {
+        s3.listObjectsV2({
+            Bucket: bucket,
+            Delimiter: "/",
+            Prefix: folder + "/"
+        }, (err, data) => {
+            if (err)
+                reject(err);
+            else
+                resolve(data.CommonPrefixes.map(p => p.Prefix.substring(folder.length + 1, p.Prefix.length - 1)))
+        });
+    });
 }
 
 module.exports = {
     init,
-    initBucket
-}
+    checkFile,
+    getFile,
+    removeFile,
+    setFile,
+    listFolders
+};
