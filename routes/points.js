@@ -272,7 +272,7 @@ function handleError(error, next, algo) {
 }
 
 function storeFile(next, newFile, algo) {
-  storeS3.setFile(algo.conf.S3_RESULT_BUCKET, algo.storedFile, fs.readFileSync(newFile))
+  storeS3.setFile(algo.conf.S3_RESULT_BUCKET, algo.storedFile, fs.createReadStream(newFile))
     .then(() => {
       removeFile(newFile);
       debug('File stored on the store :' + algo.storedFile);
