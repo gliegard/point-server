@@ -67,7 +67,7 @@ function removeFile(bucket, file) {
 
 function setFile(bucket, file, content = "") {
     return new Promise((resolve, reject) => {
-        s3.upload({
+        s3.putObject({
             Bucket: bucket,
             Key: file,
             Body: content
