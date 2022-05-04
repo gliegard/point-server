@@ -39,36 +39,45 @@ function initMatrix(conf) {
   debug('matrix loaded');
 }
 
+function parsePoint(point) {
+  const coord = point.split(' ');
+  return { x: parseFloat(coord[0]), y: parseFloat(coord[1]) };
+}
+
 function computeBoundingBox(polygon_points) {
-  const first_point = polygon_points[0].split(' ');
-  let x1 = parseFloat(first_point[0]);
-  let x2 = x1;
-  let y1 = parseFloat(first_point[1]);
-  let y2 = y1;
+  const first_point = parsePoint(polygon_points[0]);
+  let x1 = first_point.x, x2 = x1;
+  let y1 = first_point.y, y2 = y1;
   const num_points = polygon_points.length;
   for (let i = 1; i < num_points; i++) {
-    const coord = polygon_points[i].split(' ');
-    const x = parseFloat(coord[0]);
-    const y = parseFloat(coord[1]);
-    // debug(x, y);
-    if (isNaN(x) || isNaN(y)) {
+    const point = parsePoint(polygon_points[i])
+    // debug(point.x, point.y);
+    if (isNaN(point.x) || isNaN(point.y)) {
       continue;
     }
 
-    x1 = Math.min(x1, x);
-    x2 = Math.max(x2, x);
-    y1 = Math.min(y1, y);
-    y2 = Math.max(y2, y);
+    x1 = Math.min(x1, point.x);
+    x2 = Math.max(x2, point.x);
+    y1 = Math.min(y1, point.y);
+    y2 = Math.max(y2, point.y);
   }
 
   return [x1, x2, y1, y2];
 }
 
-function computeArea(x1, x2, y1, y2) {
-  const deltaX = Math.floor(x2 - x1);
-  const deltaY = Math.floor(y2 - y1);
-  const area = Math.floor(deltaX * deltaY);
-  debug('area: ' + deltaX + 'm * ' + deltaY + 'm = ' + area + ' m²');
+function computeArea(polygon_points) {
+  let area = 0;
+  let j = polygon_points.length - 1;
+
+  for (let i = 0; i < polygon_points.length; i++) {
+    let p1 = parsePoint(polygon_points[i]);
+    let p2 = parsePoint(polygon_points[j]);
+    area += (p2.x + p1.x) * (p1.y - p2.y);
+    j = i
+  }
+
+  area = Math.abs(area / 2);
+  debug('area: ' + area + ' m²');
   return area;
 }
 
