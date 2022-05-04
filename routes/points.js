@@ -72,7 +72,8 @@ function handleRequest(req, res, next, conf, source) {
   }
   // Manage Invalid ring. When First point is not equal to the last point.
   if (polygon_points[0] !== polygon_points[polygon_points.length - 1]) {
-    polygon += ',' + polygon_points[0]
+    polygon += ',' + polygon_points[0];
+    polygon_points.push(polygon_points[0]);
   }
 
   // format ept & pivot urls
@@ -99,7 +100,7 @@ function handleRequest(req, res, next, conf, source) {
   debug('bbox: x: ' + algo.x1 + ' to ' + algo.x2 + ' ; y: ' + algo.y1 + ' to ' + algo.y2)
 
   // compute area
-  const area = extract.computeArea(algo.x1, algo.x2, algo.y1, algo.y2);
+  const area = extract.computeArea(polygon_points);
 
   // limit on area
   // 0 means no limit
