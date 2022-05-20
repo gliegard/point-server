@@ -12,6 +12,7 @@ function getDatasetConf(dataset, res) {
       res.status(200).json({
         ept: config.formatDatasetURL(conf.EPT_JSON, dataset),
         pivot: config.formatDatasetURL(conf.PIVOT_THREEJS, dataset),
+        emprise: config.formatDatasetURL(conf.EMPRISE, dataset),
         maxArea: conf.SURFACE_MAX
       });
     })
