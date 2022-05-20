@@ -2,6 +2,7 @@
     "default": {
         "EPT_JSON": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/data/{dataset}/EPT_4978/ept.json",
         "PIVOT_THREEJS": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/data/{dataset}/metadata/pivotTHREE.json",
+        "EMPRISE": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/data/{dataset}/metadata/emprise.geojson",
         "SURFACE_MAX": 100000,
         "RETURN_URL": true,
         "S3_DATA_BUCKET": "lidar",
@@ -15,6 +16,7 @@
     },
     "paris": {
         "EPT_JSON": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/EPT_4978/ept.json",
-        "PIVOT_THREEJS": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/metadata/pivotTHREE.json"
+        "PIVOT_THREEJS": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/metadata/pivotTHREE.json",
+        "EMPRISE": "https://storage.gra.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/lidar/EI19DPAR/metadata/emprise.geojson"
     }
 }
