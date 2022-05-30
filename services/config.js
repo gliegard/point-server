@@ -9,6 +9,7 @@ const DEFAULT_CONFIG_KEY = "default";
  * @typedef {{
  *   EPT_JSON?: string;
  *   PIVOT_THREEJS?: string;
+ *   EMPRISE?: string;
  *   SURFACE_MAX?: number;
  *   RETURN_URL?: boolean;
  *   S3_DATA_BUCKET?: string;
